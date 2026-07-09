@@ -11,11 +11,18 @@ invoice. It's slow and error-prone. VyaparAI automates the whole **quote-to-cash
 
 ## What it does
 1. **Understands** a free-text inquiry in English, Hindi, or Hinglish (Qwen).
-2. **Matches** items to the product catalog (HSN code, GST rate, stock).
+2. A **Qwen function-calling agent** searches the catalog, **classifies the HSN code + GST rate for off-catalog items**, adds line items, and asks clarifying questions.
 3. **Builds a quote** with correct GST math (intra-state CGST+SGST or inter-state IGST).
-4. **Asks clarifying questions** when the inquiry is ambiguous or items are missing.
-5. **Human-in-the-loop:** the owner reviews & approves before anything goes out.
-6. **Generates a GST e-invoice** (HSN summary, IRN + signed QR via IRP sandbox) and **sends** it.
+4. **Human-in-the-loop:** the owner reviews & approves before anything goes out.
+5. **Generates a GST e-invoice** (HSN summary, IRN + QR) and **sends** it back over WhatsApp.
+
+## The agent (not just one LLM call)
+A real Qwen tool-calling loop (`backend/agent/agent_loop.py`) with five tools —
+`search_catalog`, `classify_hsn`, `add_line_item`, `request_clarification`,
+`finalize_quote`. The model decides what to call; the UI shows the reasoning trace.
+Example: asked for an off-catalog *"solar panel 100W"*, the agent detects the bad
+catalog match and calls `classify_hsn` itself → **HSN 8541 @ 5% GST** (correct for
+solar in India). A deterministic fallback keeps it working if the model/key is down.
 
 ## Architecture
 ```mermaid
@@ -62,12 +69,14 @@ curl -X POST localhost:8000/approve/Q-1001
 ```
 
 ## Roadmap
-- [x] Agent pipeline: parse → match → quote → approve → invoice → send
+- [x] Quote-to-cash flow: inquiry → quote → approve → invoice → send
 - [x] GST math (CGST/SGST/IGST), HSN-tagged catalog
-- [ ] Wire Qwen Cloud key + confirm model id / base_url
-- [ ] IRP sandbox for a real IRN + signed QR
-- [ ] WhatsApp Cloud API channel + web review UI
-- [ ] Deploy on Alibaba Cloud + capture deployment proof
+- [x] Live Qwen Cloud (`qwen-plus`) wired
+- [x] Genuine Qwen tool-calling agent + off-catalog HSN classification + reasoning trace
+- [x] WhatsApp-style human-in-the-loop review UI
+- [x] Alibaba Cloud deploy kit (`Dockerfile`, ECS unit, `DEPLOY.md`)
+- [ ] Live IRP sandbox for a real signed IRN + QR
+- [ ] WhatsApp Cloud API channel + UPI payment links
 
 ## Note
 GST rates / HSN codes in `backend/data/catalog.json` are **illustrative samples** for the demo,
