@@ -351,19 +351,6 @@ function renderQuote(q){
   qs('#editBtn').onclick = ()=> toast('Clarification round-trip — coming in the live-Qwen build');
 }
 
-function drawQR(canvas, payload){
-  const ctx=canvas.getContext('2d'); const N=25, cell=canvas.width/N;
-  ctx.fillStyle='#FBF7EE'; ctx.fillRect(0,0,canvas.width,canvas.height);
-  let seed=2166136261; for(let i=0;i<payload.length;i++){seed^=payload.charCodeAt(i); seed=Math.imul(seed,16777619);}
-  const rnd=()=>{seed=(Math.imul(seed,1103515245)+12345)&0x7fffffff; return seed/0x7fffffff;};
-  ctx.fillStyle='#211C15';
-  for(let y=0;y<N;y++)for(let x=0;x<N;x++){ if(rnd()>0.52) ctx.fillRect(x*cell,y*cell,cell+.6,cell+.6); }
-  const fin=(fx,fy)=>{ctx.fillStyle='#211C15';ctx.fillRect(fx*cell,fy*cell,7*cell,7*cell);
-    ctx.fillStyle='#FBF7EE';ctx.fillRect((fx+1)*cell,(fy+1)*cell,5*cell,5*cell);
-    ctx.fillStyle='#211C15';ctx.fillRect((fx+2)*cell,(fy+2)*cell,3*cell,3*cell);};
-  fin(0,0);fin(N-7,0);fin(0,N-7);
-}
-
 function renderInvoice(inv){
   state.invoiceNo = inv.invoice_no;
   const q=inv.quote;
@@ -371,21 +358,22 @@ function renderInvoice(inv){
     <div class="stamp">APPROVED</div>
     <div class="inv-grid">
       <div class="kv">
-        <div><div class="k">Invoice no.</div><div class="v">${inv.invoice_no}</div></div>
-        <div><div class="k">IRN (e-invoice)</div><div class="v mono">${inv.irn}</div></div>
+        <div><div class="k">Invoice no. · Ack</div><div class="v">${inv.invoice_no} <span style="font-size:11px;color:var(--ink-soft);font-family:var(--font-ui)">· Ack ${inv.ack_no||'—'}</span></div></div>
+        <div><div class="k">IRN — NIC SHA-256</div><div class="v mono" style="font-size:10.5px">${inv.irn}</div></div>
         <div><div class="k">Seller GSTIN</div><div class="v mono">${inv.seller_gstin}</div></div>
         <div><div class="k">Grand total</div><div class="v" style="color:var(--emerald)">${INR.format(q.grand_total)}</div></div>
         <div class="actions" style="margin-top:2px">
           <button class="btn go" id="sendBtn">Send on WhatsApp</button>
+          <button class="btn ghost" onclick="window.open('/invoice/${inv.invoice_no}','_blank')">🧾 View invoice</button>
+          <button class="btn ghost" onclick="window.open('/invoice/${inv.invoice_no}/inv01.json','_blank')">INV-01 JSON</button>
         </div>
       </div>
       <div class="qr-wrap">
-        <div class="qr"><canvas width="116" height="116"></canvas><span class="tag">e-INVOICE</span></div>
-        <div class="qr-cap">Sample QR · real IRN + signed QR<br>wire up via IRP sandbox (task #4)</div>
+        <div class="qr"><img src="/invoice/${inv.invoice_no}/qr.svg" alt="signed e-invoice QR" style="width:116px;height:116px;display:block;background:#fff;border-radius:6px"><span class="tag">e-INVOICE</span></div>
+        <div class="qr-cap"><b>Scannable</b> · JWS-signed payload<br>NIC INV-01 · sandbox key</div>
       </div>
     </div>`;
   qs('#invoiceCard').classList.remove('hidden'); qs('#invoiceCard').classList.add('rise');
-  drawQR(qs('#invoiceBody canvas'), inv.qr_payload||inv.invoice_no);
   qs('#qStatus').className='status appr'; qs('#qStatus').textContent='✓ Approved';
   qs('#invoiceBody').scrollIntoView({behavior:'smooth', block:'nearest'});
   qs('#sendBtn').onclick = sendInvoice;
@@ -397,7 +385,7 @@ async function processInquiry(text){
   typing(true);
   try{
     await new Promise(r=>setTimeout(r,850));
-    const q = await api('/inquiry', {text, intra_state:true});
+    const q = await api('/inquiry', {text, intra_state:true, customer_name:'Sharma Electricals'});
     typing(false);
     renderQuote(q);
     bubble('out','Got it 🙏 Drafted a quote for <b>'+q.lines.length+'</b> item(s), total <b>'+INR.format(q.grand_total)+'</b>. Sending after owner approval →');

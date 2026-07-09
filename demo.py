@@ -37,5 +37,6 @@ print(f"  {'GRAND TOTAL':>41}: Rs{quote.grand_total:>11.2f}\n")
 # --- Human-in-the-loop approval -> GST e-invoice ---
 invoice = agent.approve_and_invoice(quote)
 print(f"APPROVED -> INVOICE {invoice.invoice_no}")
-print(f"  IRN:        {invoice.irn}")
-print(f"  QR payload: {invoice.qr_payload}")
+print(f"  IRN (NIC SHA-256): {invoice.irn}")
+print(f"  Ack: {invoice.ack_no} @ {invoice.ack_dt}")
+print(f"  Signed QR (JWS): {invoice.qr_jws[:60]}...")

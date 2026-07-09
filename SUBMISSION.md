@@ -56,6 +56,9 @@ quote. The full tool-call trace is shown live in the UI.
 ## Accomplishments we're proud of
 - A genuine autonomous agent that classifies off-catalog items' HSN/GST correctly.
 - Correct multi-rate GST invoices with CGST/SGST/IGST.
+- **Standards-real e-invoicing:** NIC INV-01 v1.1 payload, IRN computed with the exact
+  NIC SHA-256 algorithm, a JWS-signed **scannable** QR, and a printable tax invoice
+  with amount-in-words (Indian lakh/crore system).
 - Bilingual, WhatsApp-native, with a real human-in-the-loop approval step.
 - Production-minded: graceful degradation, clean architecture, one-command deploy.
 

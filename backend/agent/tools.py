@@ -109,20 +109,30 @@ def build_quote(
 
 
 def generate_gst_invoice(invoice_no: str, quote: Quote, seller_gstin: str) -> Invoice:
-    """Build a GST invoice from an approved quote.
+    """Build a GST e-invoice from an approved quote.
 
-    TODO: integrate the IRP sandbox (einv-apisandbox.nic.in) to obtain a real IRN
-    and signed QR. For now we emit a deterministic placeholder so the flow is testable.
+    Uses the einvoice layer: NIC INV-01 payload, the real IRN algorithm, and a
+    sandbox-signed JWS QR (live IRP registration drops into einvoice.register_invoice).
     """
-    inv = Invoice(
+    from backend.agent import einvoice
+
+    reg = einvoice.register_invoice(
+        quote, invoice_no,
+        buyer_name=quote.customer_name,
+        buyer_gstin=quote.customer_gstin,
+    )
+    return Invoice(
         invoice_no=invoice_no,
         quote=quote,
         seller_gstin=seller_gstin,
+        irn=reg["irn"],
+        ack_no=reg["ack_no"],
+        ack_dt=reg["ack_dt"],
+        qr_jws=reg["qr_jws"],
+        inv01=reg["inv01"],
+        signed_by=reg["signed_by"],
         status=Status.APPROVED,
     )
-    inv.irn = "SANDBOX-" + invoice_no
-    inv.qr_payload = f"{seller_gstin}|{invoice_no}|{quote.grand_total}"
-    return inv
 
 
 def send_quote(invoice: Invoice, channel: str = "whatsapp") -> dict:

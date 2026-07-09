@@ -86,9 +86,17 @@ The agent noticed the catalog's fuzzy match was wrong, **reached for its HSN-cla
 | 🧮 **GST-correct math** | Per-item HSN, 12%/18%/5% rates, intra-state CGST+SGST or inter-state IGST |
 | ❓ **Clarifying questions** | Ambiguity (specs, brand, delivery) becomes non-blocking questions, not guesses |
 | 👤 **Human-in-the-loop** | The owner approves every quote before the e-invoice exists |
-| 🧾 **E-invoice + WhatsApp delivery** | Invoice no, IRN, QR — sent back into the chat with a UPI payment line |
+| 🧾 **Standards-real e-invoicing** | NIC **INV-01 v1.1** payload, **IRN** per the NIC SHA-256 algorithm, **JWS-signed scannable QR**, printable tax invoice with amount-in-words |
 | 🪂 **Graceful degradation** | Model or key down? A heuristic parser keeps quotes flowing |
 | 👀 **Transparent reasoning** | The full tool-call trace renders in the review UI |
+
+## 🧾 The output is a real document
+
+Approval doesn't produce a toast message — it produces a **GST tax invoice**: NIC INV-01 v1.1 payload (downloadable at `/invoice/{no}/inv01.json`), an IRN computed with the exact NIC SHA-256 algorithm, a **scannable QR carrying a JWS-signed payload** (self-signed sandbox key; the live IRP's RS256 signature drops into the same seam), and a printable page at `/invoice/{no}`:
+
+<div align="center">
+<img src="docs/invoice.png" alt="Generated GST tax invoice — IRN, signed QR, HSN table, CGST/SGST split, amount in words" width="680">
+</div>
 
 ## 🏗️ Architecture
 
@@ -166,8 +174,9 @@ Reasoning runs on **Qwen Cloud** (`qwen-plus`, OpenAI-compatible endpoint); the 
 
 - [x] Qwen tool-calling agent with off-catalog HSN classification + reasoning trace
 - [x] GST engine (CGST/SGST/IGST) · bilingual UI · human-in-the-loop · e-invoice + delivery
+- [x] E-invoice layer: NIC INV-01 v1.1 · IRN (NIC SHA-256) · JWS-signed scannable QR · printable invoice
 - [x] Alibaba Cloud deploy kit
-- [ ] Live IRP sandbox integration → genuine signed IRN + QR
+- [ ] Live IRP registration (GSTIN-gated credentials) — drop-in seam ready in `einvoice.register_invoice()`
 - [ ] WhatsApp Cloud API as a production channel
 - [ ] UPI deep-link payments · ledger/ERP sync
 - [ ] Two-way clarification loop with the customer

@@ -76,6 +76,10 @@ class Invoice(BaseModel):
     invoice_no: str
     quote: Quote
     seller_gstin: str
-    irn: Optional[str] = None       # Invoice Reference Number from the IRP (e-invoice)
-    qr_payload: Optional[str] = None
+    irn: Optional[str] = None       # Invoice Reference Number (NIC SHA-256 algorithm)
+    ack_no: Optional[str] = None    # IRP acknowledgement number
+    ack_dt: Optional[str] = None    # IRP acknowledgement timestamp
+    qr_jws: Optional[str] = None    # signed QR payload (compact JWS)
+    inv01: Optional[dict] = None    # full NIC INV-01 v1.1 registration payload
+    signed_by: Optional[str] = None
     status: Status = Status.DRAFT

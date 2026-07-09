@@ -21,11 +21,12 @@ class QuoteToCashAgent:
         self._seq += 1
         return f"{prefix}-{self._seq}"
 
-    def draft_quote(self, raw_text: str, intra_state: bool = True) -> Quote:
+    def draft_quote(self, raw_text: str, intra_state: bool = True,
+                    customer_name: str | None = None) -> Quote:
         # Primary path: a genuine Qwen tool-calling agent.
         if self.qwen.api_key:
             try:
-                return self._agentic_quote(raw_text, intra_state)
+                return self._agentic_quote(raw_text, intra_state, customer_name)
             except Exception as e:
                 # Never fail the request: fall back to the deterministic pipeline.
                 quote = self._deterministic_quote(raw_text, intra_state)
@@ -33,11 +34,17 @@ class QuoteToCashAgent:
                     f"Agent loop fell back to single-shot parse ({type(e).__name__})."
                 )
                 return quote
-        return self._deterministic_quote(raw_text, intra_state)
+        quote = self._deterministic_quote(raw_text, intra_state)
+        if customer_name and not quote.customer_name:
+            quote.customer_name = customer_name
+        return quote
 
-    def _agentic_quote(self, raw_text: str, intra_state: bool) -> Quote:
+    def _agentic_quote(self, raw_text: str, intra_state: bool,
+                       customer_name: str | None = None) -> Quote:
         working, clarifications, intra, trace = run_agent(raw_text, self.qwen, intra_state)
-        quote = tools.quote_from_lines(self._next_id("Q"), working, intra)
+        quote = tools.quote_from_lines(
+            self._next_id("Q"), working, intra, customer_name=customer_name
+        )
         quote.detected_language = _detect_lang(raw_text).value
         quote.agent_trace = trace
         quote.notes.extend(clarifications)
