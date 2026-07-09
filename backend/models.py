@@ -68,6 +68,7 @@ class Quote(BaseModel):
     grand_total: float = 0
     status: Status = Status.DRAFT
     detected_language: Optional[str] = None
+    agent_trace: list[dict] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 
 

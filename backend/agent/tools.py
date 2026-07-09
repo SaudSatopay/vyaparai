@@ -39,30 +39,32 @@ def catalog_lookup(query: str, limit: int = 3) -> list[dict]:
     return [p for _, p in scored[:limit]]
 
 
-def build_quote(
+def quote_from_lines(
     quote_id: str,
-    inquiry: Inquiry,
-    matched: list[tuple[ParsedItem, dict]],
+    lines: list[dict],
     intra_state: bool = True,
+    customer_name: str | None = None,
+    customer_gstin: str | None = None,
 ) -> Quote:
-    """Compute a GST-correct quote. Intra-state -> CGST+SGST; inter-state -> IGST."""
+    """Compute a GST-correct quote from raw line dicts
+    (name/hsn/qty/unit_price/gst_rate). Intra-state -> CGST+SGST; inter-state -> IGST."""
     q = Quote(
         quote_id=quote_id,
-        customer_name=inquiry.customer_name,
-        customer_gstin=inquiry.customer_gstin,
+        customer_name=customer_name,
+        customer_gstin=customer_gstin,
         intra_state=intra_state,
     )
-    for item, product in matched:
-        taxable = _round2(item.qty * product["unit_price"])
-        gst_amt = _round2(taxable * product["gst_rate"] / 100)
+    for d in lines:
+        taxable = _round2(d["qty"] * d["unit_price"])
+        gst_amt = _round2(taxable * d["gst_rate"] / 100)
         line = LineItem(
-            product_id=product["id"],
-            name=product["name"],
-            hsn=str(product["hsn"]),
-            qty=item.qty,
-            unit=product.get("unit", "pcs"),
-            unit_price=product["unit_price"],
-            gst_rate=product["gst_rate"],
+            product_id=d.get("product_id", "CUSTOM"),
+            name=d["name"],
+            hsn=str(d["hsn"]),
+            qty=d["qty"],
+            unit=d.get("unit", "pcs"),
+            unit_price=d["unit_price"],
+            gst_rate=d["gst_rate"],
             taxable_value=taxable,
         )
         if intra_state:
@@ -77,11 +79,33 @@ def build_quote(
     q.total_cgst = _round2(sum(l.cgst for l in q.lines))
     q.total_sgst = _round2(sum(l.sgst for l in q.lines))
     q.total_igst = _round2(sum(l.igst for l in q.lines))
-    q.grand_total = _round2(
-        q.taxable_total + q.total_cgst + q.total_sgst + q.total_igst
-    )
-    q.status = Status.PENDING_APPROVAL
+    q.grand_total = _round2(q.taxable_total + q.total_cgst + q.total_sgst + q.total_igst)
+    q.status = Status.PENDING_APPROVAL if q.lines else Status.NEEDS_INFO
     return q
+
+
+def build_quote(
+    quote_id: str,
+    inquiry: Inquiry,
+    matched: list[tuple[ParsedItem, dict]],
+    intra_state: bool = True,
+) -> Quote:
+    """Deterministic quote from catalog matches (fallback path)."""
+    lines = [
+        {
+            "product_id": p["id"],
+            "name": p["name"],
+            "hsn": p["hsn"],
+            "qty": item.qty,
+            "unit": p.get("unit", "pcs"),
+            "unit_price": p["unit_price"],
+            "gst_rate": p["gst_rate"],
+        }
+        for item, p in matched
+    ]
+    return quote_from_lines(
+        quote_id, lines, intra_state, inquiry.customer_name, inquiry.customer_gstin
+    )
 
 
 def generate_gst_invoice(invoice_no: str, quote: Quote, seller_gstin: str) -> Invoice:

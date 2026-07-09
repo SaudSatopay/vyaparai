@@ -117,6 +117,14 @@
   .chip.nlu.heur{background:var(--amber-soft); border-color:#ecd9a8; color:var(--amber)}
   .rawq{font-size:12.5px; color:var(--ink-soft); margin:10px 0 2px}
   .rawq b{color:var(--ink)}
+  .trace{margin:12px 0 6px; background:#f6efe1; border:1px solid var(--line); border-radius:12px; padding:11px 13px}
+  .trace-h{font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:8px}
+  .tstep{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12px; padding:5px 0; border-bottom:1px dashed #e7ddc9; animation:pop .3s both}
+  .tstep:last-child{border-bottom:none}
+  .ttool{font-family:ui-monospace,monospace; font-size:10.5px; font-weight:700; background:var(--ink); color:var(--paper-2); padding:2px 9px; border-radius:100px; white-space:nowrap}
+  .tin{color:var(--ink-soft); font-style:italic}
+  .tarrow{color:var(--saffron-deep); font-weight:800}
+  .tout{font-weight:600; color:var(--ink)}
 
   table.q{width:100%; border-collapse:collapse; margin-top:12px; font-size:13px}
   table.q th{text-align:left; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft);
@@ -257,6 +265,7 @@
 <script>
 const INR = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2});
 const LANG = {en:'English', hi:'हिन्दी', hinglish:'Hinglish', other:'Other'};
+const TOOL_ICON = {search_catalog:'🔍', classify_hsn:'🏷️', add_line_item:'➕', request_clarification:'❓', finalize_quote:'✅'};
 const DEMO = "bhai 50 LED bulb 9W aur 10 ceiling fan ka quote bhej do";
 const qs = s => document.querySelector(s);
 let state = {quoteId:null, invoiceNo:null, busy:false};
@@ -303,6 +312,16 @@ function renderQuote(q){
        <div class="trow"><span>SGST</span><b>${INR.format(q.total_sgst)}</b></div>`;
   const noteHtml = (q.notes||[]).filter(n=>!/Heuristic offline/.test(n))
     .map(n=>`<div class="note">${n}</div>`).join('');
+  const traceHtml = (q.agent_trace||[]).length ? `
+    <div class="trace">
+      <div class="trace-h">🧠 Agent reasoning · ${q.agent_trace.length} tool calls</div>
+      ${q.agent_trace.map(t=>`<div class="tstep">
+        <span class="ttool">${TOOL_ICON[t.tool]||'•'} ${escapeHtml(t.tool)}</span>
+        ${t.input?`<span class="tin">${escapeHtml(String(t.input))}</span>`:''}
+        <span class="tarrow">→</span>
+        <span class="tout">${escapeHtml(String(t.output||''))}</span>
+      </div>`).join('')}
+    </div>` : '';
   qs('#quoteBody').innerHTML = `
     <div class="understand">
       <span class="chip lang">🌐 ${LANG[q.detected_language]||q.detected_language||'—'}</span>
@@ -310,7 +329,8 @@ function renderQuote(q){
       <span class="chip">Quote <b>${q.quote_id}</b></span>
       <span class="chip">${inter?'Inter-state · IGST':'Intra-state · CGST+SGST'}</span>
     </div>
-    <div class="rawq">Agent understood <b>${q.lines.length}</b> line item(s) and matched them to your catalog:</div>
+    ${traceHtml}
+    <div class="rawq">Agent produced <b>${q.lines.length}</b> line item(s) — catalog matches + AI-classified HSN:</div>
     <table class="q">
       <thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">GST</th><th class="r">Tax</th><th class="r">Amount</th></tr></thead>
       <tbody>${rows}</tbody>

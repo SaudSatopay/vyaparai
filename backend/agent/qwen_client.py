@@ -104,24 +104,51 @@ class QwenClient:
         )
         return resp.choices[0].message.content
 
-    def extract_inquiry(self, raw_text: str) -> Inquiry:
-        """Turn raw EN/HI/Hinglish text into a structured Inquiry."""
-        if not self.api_key:
-            # Graceful degradation: heuristic parse so the pipeline runs/demos with no key.
-            return Inquiry(
-                raw_text=raw_text,
-                language=_detect_lang(raw_text),
-                items=_heuristic_parse(raw_text),
-                clarifications_needed=[
-                    "Heuristic offline parser in use (set QWEN_API_KEY for full Qwen NLU)."
-                ],
-            )
-        data = json.loads(_extract_json(self.chat(f"{_SCHEMA_HINT}\n\nInquiry:\n{raw_text}")))
+    def _heuristic_inquiry(self, raw_text: str, note: str) -> Inquiry:
         return Inquiry(
             raw_text=raw_text,
-            language=_to_lang(data.get("language", "en")),
-            customer_name=data.get("customer_name"),
-            customer_gstin=data.get("customer_gstin"),
-            items=[ParsedItem(**it) for it in data.get("items", [])],
-            clarifications_needed=data.get("clarifications_needed", []),
+            language=_detect_lang(raw_text),
+            items=_heuristic_parse(raw_text),
+            clarifications_needed=[note],
         )
+
+    def extract_inquiry(self, raw_text: str) -> Inquiry:
+        """Turn raw EN/HI/Hinglish text into a structured Inquiry (single-shot)."""
+        if not self.api_key:
+            return self._heuristic_inquiry(
+                raw_text, "Heuristic offline parser (set QWEN_API_KEY for full Qwen NLU)."
+            )
+        try:
+            data = json.loads(
+                _extract_json(self.chat(f"{_SCHEMA_HINT}\n\nInquiry:\n{raw_text}"))
+            )
+            return Inquiry(
+                raw_text=raw_text,
+                language=_to_lang(data.get("language", "en")),
+                customer_name=data.get("customer_name"),
+                customer_gstin=data.get("customer_gstin"),
+                items=[ParsedItem(**it) for it in data.get("items", [])],
+                clarifications_needed=data.get("clarifications_needed", []),
+            )
+        except Exception as e:  # never fail the request
+            return self._heuristic_inquiry(raw_text, f"Qwen parse fallback ({type(e).__name__}).")
+
+    def classify_hsn(self, description: str) -> dict:
+        """Classify an off-catalog product to an Indian GST HSN code + rate via Qwen."""
+        if not self.api_key:
+            return {"hsn": "0000", "gst_rate": 18.0, "canonical_name": description}
+        try:
+            out = self.chat(
+                f'Classify this product for Indian GST. Product: "{description}". '
+                'Return JSON only: {"hsn":"<4-8 digit HSN code>","gst_rate":<number>,'
+                '"canonical_name":"<concise product name>"}',
+                system="You are an Indian GST/HSN classification expert. Return strict JSON only.",
+            )
+            d = json.loads(_extract_json(out))
+            return {
+                "hsn": str(d.get("hsn", "0000")),
+                "gst_rate": float(d.get("gst_rate", 18)),
+                "canonical_name": d.get("canonical_name", description),
+            }
+        except Exception:
+            return {"hsn": "0000", "gst_rate": 18.0, "canonical_name": description}

@@ -1,12 +1,13 @@
 """Quote-to-Cash agent: ties the tools into an end-to-end autopilot.
 
-Flow: inquiry -> parse -> match -> quote -> [HUMAN APPROVAL] -> invoice -> send.
+Flow: inquiry -> (Qwen tool-calling agent) -> quote -> [HUMAN APPROVAL] -> invoice -> send.
 The human-in-the-loop checkpoint sits between quote generation and invoicing.
 """
 from __future__ import annotations
 
 from backend.agent import tools
-from backend.agent.qwen_client import QwenClient
+from backend.agent.agent_loop import run_agent
+from backend.agent.qwen_client import QwenClient, _detect_lang
 from backend.models import Invoice, Quote, Status
 
 
@@ -21,6 +22,30 @@ class QuoteToCashAgent:
         return f"{prefix}-{self._seq}"
 
     def draft_quote(self, raw_text: str, intra_state: bool = True) -> Quote:
+        # Primary path: a genuine Qwen tool-calling agent.
+        if self.qwen.api_key:
+            try:
+                return self._agentic_quote(raw_text, intra_state)
+            except Exception as e:
+                # Never fail the request: fall back to the deterministic pipeline.
+                quote = self._deterministic_quote(raw_text, intra_state)
+                quote.notes.append(
+                    f"Agent loop fell back to single-shot parse ({type(e).__name__})."
+                )
+                return quote
+        return self._deterministic_quote(raw_text, intra_state)
+
+    def _agentic_quote(self, raw_text: str, intra_state: bool) -> Quote:
+        working, clarifications, intra, trace = run_agent(raw_text, self.qwen, intra_state)
+        quote = tools.quote_from_lines(self._next_id("Q"), working, intra)
+        quote.detected_language = _detect_lang(raw_text).value
+        quote.agent_trace = trace
+        quote.notes.extend(clarifications)
+        if not working:
+            quote.status = Status.NEEDS_INFO
+        return quote
+
+    def _deterministic_quote(self, raw_text: str, intra_state: bool) -> Quote:
         inquiry = tools.parse_inquiry(raw_text, self.qwen)
         matched, unresolved = [], list(inquiry.clarifications_needed)
         for item in inquiry.items:
