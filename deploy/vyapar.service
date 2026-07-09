@@ -1,0 +1,13 @@
+[Unit]
+Description=VyaparAI Quote-to-Cash Autopilot
+After=network.target
+
+[Service]
+WorkingDirectory=/root/vyapar
+EnvironmentFile=/etc/vyapar.env
+ExecStart=/root/vyapar/.venv/bin/uvicorn backend.app:app --host 0.0.0.0 --port 8000
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target

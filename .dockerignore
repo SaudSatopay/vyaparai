@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.git/
+.claude/
+demo.py
+test_qwen.py
+*.md
