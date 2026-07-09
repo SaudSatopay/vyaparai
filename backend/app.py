@@ -1,0 +1,72 @@
+"""FastAPI surface for the Quote-to-Cash Autopilot.
+
+Run: uvicorn backend.app:app --reload   (then open http://localhost:8000/)
+"""
+from __future__ import annotations
+
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load .env before importing the agent (QwenClient reads QWEN_* at import time).
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi.responses import FileResponse  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
+
+from backend.agent.orchestrator import QuoteToCashAgent  # noqa: E402
+from backend.models import Invoice, Quote  # noqa: E402
+
+app = FastAPI(title="VyaparAI - Quote-to-Cash Autopilot", version="0.1.0")
+agent = QuoteToCashAgent()
+
+_INDEX = Path(__file__).resolve().parent.parent / "frontend" / "index.html"
+
+# In-memory stores for the scaffold; swap for a DB (Alibaba Cloud RDS) later.
+_QUOTES: dict[str, Quote] = {}
+_INVOICES: dict[str, Invoice] = {}
+
+
+class InquiryIn(BaseModel):
+    text: str
+    intra_state: bool = True
+
+
+@app.get("/health")
+def health():
+    return {"ok": True, "qwen": bool(agent.qwen.api_key)}
+
+
+@app.get("/")
+def index():
+    """Serve the human-in-the-loop review UI."""
+    return FileResponse(_INDEX)
+
+
+@app.post("/inquiry", response_model=Quote)
+def inquiry(body: InquiryIn):
+    """Step 1: customer inquiry -> draft quote (pending human approval)."""
+    q = agent.draft_quote(body.text, body.intra_state)
+    _QUOTES[q.quote_id] = q
+    return q
+
+
+@app.post("/approve/{quote_id}", response_model=Invoice)
+def approve(quote_id: str):
+    """Step 2 (human-in-the-loop): approve a quote -> GST e-invoice."""
+    q = _QUOTES.get(quote_id)
+    if not q:
+        raise HTTPException(404, "quote not found")
+    inv = agent.approve_and_invoice(q)
+    _INVOICES[inv.invoice_no] = inv
+    return inv
+
+
+@app.post("/send/{invoice_no}")
+def send(invoice_no: str, channel: str = "whatsapp"):
+    """Step 3: deliver the invoice (WhatsApp / email)."""
+    inv = _INVOICES.get(invoice_no)
+    if not inv:
+        raise HTTPException(404, "invoice not found")
+    return agent.send(inv, channel)

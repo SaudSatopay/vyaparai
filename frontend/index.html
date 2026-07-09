@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VyaparAI — Quote-to-Cash Autopilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F3ECDD; --paper-2:#FBF7EE; --card:#FCF9F2;
+    --ink:#211C15; --ink-soft:#6B6152; --line:#E6DAC4;
+    --saffron:#DC6B18; --saffron-deep:#B4530C;
+    --emerald:#12805C; --emerald-soft:#E4F2EB;
+    --teal:#0B5C52; --wa-bg:#E7E0D6; --wa-out:#E4F6D3; --wa-in:#FFFFFF;
+    --amber:#B9821A; --amber-soft:#F6ECCF;
+    --font-display:'Fraunces',Georgia,serif;
+    --font-ui:'Hanken Grotesk',system-ui,sans-serif;
+    --dev:'Noto Sans Devanagari','Hanken Grotesk',sans-serif;
+    --shadow:0 1px 0 #fff8 inset, 0 12px 30px -12px #2b210f38, 0 2px 8px -4px #2b210f30;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--font-ui); color:var(--ink); background:var(--paper);
+    background-image:
+      radial-gradient(120% 80% at 90% -10%, #fff5e2 0%, transparent 45%),
+      radial-gradient(90% 70% at -10% 110%, #f0e6d0 0%, transparent 50%);
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  /* faint paper grain */
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; opacity:.5; z-index:0;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>");
+  }
+  .wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:22px 22px 60px}
+
+  /* App bar */
+  .appbar{display:flex; align-items:center; gap:16px; margin-bottom:22px}
+  .brand{display:flex; align-items:center; gap:12px}
+  .mark{
+    width:46px;height:46px;border-radius:13px;flex:none;display:grid;place-items:center;
+    background:linear-gradient(150deg,var(--saffron),var(--saffron-deep));
+    color:#fff; font-family:var(--font-display); font-weight:600; font-size:26px;
+    box-shadow:var(--shadow); position:relative;
+  }
+  .mark::after{content:"₹"; position:absolute; right:-3px; bottom:-4px; font-size:13px;
+    background:var(--emerald); color:#fff; width:19px;height:19px;border-radius:50%;
+    display:grid;place-items:center; border:2px solid var(--paper); font-family:var(--font-ui); font-weight:800}
+  .brand h1{font-family:var(--font-display); font-weight:600; font-size:25px; margin:0; letter-spacing:-.01em}
+  .brand .sub{font-size:12.5px; color:var(--ink-soft); margin-top:1px; font-weight:500}
+  .spacer{flex:1}
+  .pill{display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600;
+    padding:7px 12px; border-radius:100px; background:var(--card); border:1px solid var(--line); color:var(--ink-soft)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--emerald); box-shadow:0 0 0 3px var(--emerald-soft)}
+  .dot.off{background:var(--amber); box-shadow:0 0 0 3px var(--amber-soft)}
+  .ghostbtn{font-family:var(--font-ui); cursor:pointer; font-size:12.5px; font-weight:700;
+    padding:8px 14px; border-radius:100px; border:1px solid var(--line); background:var(--card); color:var(--ink)}
+  .ghostbtn:hover{border-color:var(--saffron); color:var(--saffron-deep)}
+
+  /* Stage */
+  .stage{display:grid; grid-template-columns:355px 1fr; gap:24px; align-items:start}
+  @media(max-width:880px){ .stage{grid-template-columns:1fr} }
+
+  /* ---- Phone / WhatsApp ---- */
+  .phone{
+    background:#0c0a07; border-radius:34px; padding:11px; box-shadow:var(--shadow);
+    position:sticky; top:18px;
+  }
+  .screen{background:var(--wa-bg); border-radius:25px; overflow:hidden; height:600px; display:flex; flex-direction:column;
+    background-image:radial-gradient(circle at 20% 12%, #00000008 0 1px, transparent 1px);
+    background-size:16px 16px;}
+  .wa-head{background:var(--teal); color:#f4efe4; padding:13px 14px; display:flex; align-items:center; gap:11px}
+  .wa-ava{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;
+    background:#d8b98a;color:#3a2c17;font-weight:800;font-size:15px}
+  .wa-head .nm{font-weight:700; font-size:14.5px; line-height:1.2}
+  .wa-head .st{font-size:11px; opacity:.8}
+  .wa-body{flex:1; overflow-y:auto; padding:16px 13px; display:flex; flex-direction:column; gap:9px}
+  .msg{max-width:80%; padding:8px 11px; border-radius:12px; font-size:13.3px; line-height:1.42;
+    box-shadow:0 1px 1px #0000001a; position:relative; animation:pop .34s cubic-bezier(.2,.9,.3,1.3) both}
+  .msg .t{display:block; font-size:9.5px; color:#0006; text-align:right; margin-top:3px}
+  .msg.in{background:var(--wa-in); align-self:flex-start; border-top-left-radius:3px}
+  .msg.out{background:var(--wa-out); align-self:flex-end; border-top-right-radius:3px}
+  .msg.out .tick{color:#34b7f1; font-weight:800}
+  .msg.card-msg{max-width:88%}
+  .msg .qline{display:flex; justify-content:space-between; gap:10px; font-size:12.5px}
+  .msg .qtot{border-top:1px dashed #0002; margin-top:5px; padding-top:5px; font-weight:800}
+  .dev,.hi{font-family:var(--dev)}
+  .typing{align-self:flex-start; background:#fff; padding:10px 13px; border-radius:12px; border-top-left-radius:3px;
+    display:inline-flex; gap:4px; box-shadow:0 1px 1px #0000001a}
+  .typing i{width:7px;height:7px;border-radius:50%;background:#9a9;display:block;animation:blink 1.2s infinite}
+  .typing i:nth-child(2){animation-delay:.2s} .typing i:nth-child(3){animation-delay:.4s}
+  .wa-foot{padding:9px 11px; background:#f7f2ea; display:flex; gap:8px; align-items:center}
+  .wa-foot input{flex:1; border:none; border-radius:100px; padding:10px 14px; font-family:var(--font-ui);
+    font-size:13px; background:#fff; outline:none}
+  .wa-foot button{width:40px;height:40px;border-radius:50%;border:none;background:var(--teal);color:#fff;
+    font-size:17px;cursor:pointer;flex:none; display:grid;place-items:center}
+
+  /* ---- Desk / review ---- */
+  .desk{display:flex; flex-direction:column; gap:18px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:20px; box-shadow:var(--shadow); overflow:hidden}
+  .card.rise{animation:rise .5s cubic-bezier(.2,.8,.25,1) both}
+  .chead{display:flex; align-items:center; gap:11px; padding:16px 20px; border-bottom:1px solid var(--line)}
+  .chead h2{font-family:var(--font-display); font-weight:600; font-size:19px; margin:0}
+  .chead .eyebrow{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--saffron-deep); font-weight:800; margin-bottom:2px}
+  .status{margin-left:auto; font-size:11.5px; font-weight:800; letter-spacing:.03em; padding:6px 11px; border-radius:100px}
+  .status.pend{background:var(--amber-soft); color:var(--amber)}
+  .status.appr{background:var(--emerald-soft); color:var(--emerald)}
+  .cbody{padding:18px 20px}
+
+  .understand{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:6px}
+  .chip{font-size:12px; font-weight:600; padding:6px 11px; border-radius:9px; background:var(--paper-2); border:1px solid var(--line)}
+  .chip b{font-weight:800}
+  .chip.lang{background:#eef4ff; border-color:#d5e2fb; color:#2b53b8}
+  .chip.nlu{background:var(--emerald-soft); border-color:#c8e6d9; color:var(--emerald)}
+  .chip.nlu.heur{background:var(--amber-soft); border-color:#ecd9a8; color:var(--amber)}
+  .rawq{font-size:12.5px; color:var(--ink-soft); margin:10px 0 2px}
+  .rawq b{color:var(--ink)}
+
+  table.q{width:100%; border-collapse:collapse; margin-top:12px; font-size:13px}
+  table.q th{text-align:left; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft);
+    font-weight:800; padding:0 8px 8px; border-bottom:1.5px solid var(--line)}
+  table.q th.r,table.q td.r{text-align:right}
+  table.q td{padding:11px 8px; border-bottom:1px solid #efe6d5; vertical-align:top}
+  table.q .nm{font-weight:700}
+  table.q .hsn{display:inline-block; font-size:10.5px; font-weight:700; color:var(--ink-soft);
+    background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:1px 6px; margin-top:3px}
+  table.q .gp{font-size:11px; font-weight:800; color:var(--saffron-deep); background:#fbe9d8; border-radius:6px; padding:2px 7px}
+  .money{font-variant-numeric:tabular-nums}
+
+  .totals{margin-top:16px; margin-left:auto; width:min(320px,100%); display:flex; flex-direction:column; gap:7px}
+  .trow{display:flex; justify-content:space-between; font-size:13.5px; color:var(--ink-soft)}
+  .trow b{color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums}
+  .grand{margin-top:6px; padding-top:11px; border-top:2px solid var(--ink);
+    display:flex; justify-content:space-between; align-items:baseline}
+  .grand span{font-family:var(--font-display); font-weight:600; font-size:16px}
+  .grand b{font-family:var(--font-display); font-weight:600; font-size:26px; color:var(--emerald); font-variant-numeric:tabular-nums}
+
+  .notes{margin-top:14px; display:flex; flex-direction:column; gap:7px}
+  .note{font-size:12px; display:flex; gap:8px; align-items:flex-start; color:var(--amber);
+    background:var(--amber-soft); border:1px solid #ecd9a8; padding:8px 11px; border-radius:10px}
+  .note::before{content:"?"; font-weight:900; background:var(--amber); color:#fff; width:16px;height:16px;
+    border-radius:50%; display:grid; place-items:center; font-size:11px; flex:none; margin-top:1px}
+
+  .actions{display:flex; gap:11px; margin-top:20px; flex-wrap:wrap}
+  .btn{font-family:var(--font-ui); cursor:pointer; font-weight:800; font-size:14px; padding:13px 20px;
+    border-radius:12px; border:none; display:inline-flex; align-items:center; gap:9px; transition:transform .1s, box-shadow .2s}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:linear-gradient(150deg,var(--saffron),var(--saffron-deep)); color:#fff;
+    box-shadow:0 8px 18px -8px var(--saffron)}
+  .btn.primary:hover{box-shadow:0 12px 24px -8px var(--saffron)}
+  .btn.go{background:linear-gradient(150deg,#1fa06f,var(--emerald)); color:#fff; box-shadow:0 8px 18px -8px var(--emerald)}
+  .btn.ghost{background:transparent; border:1.5px solid var(--line); color:var(--ink)}
+  .btn.ghost:hover{border-color:var(--ink)}
+  .btn[disabled]{opacity:.45; cursor:not-allowed}
+
+  /* Invoice */
+  .inv-grid{display:grid; grid-template-columns:1fr 148px; gap:20px; align-items:start}
+  @media(max-width:520px){ .inv-grid{grid-template-columns:1fr} }
+  .kv{display:flex; flex-direction:column; gap:12px}
+  .kv .k{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); font-weight:800}
+  .kv .v{font-size:15px; font-weight:700; font-family:var(--font-display); word-break:break-all}
+  .kv .v.mono{font-family:ui-monospace,monospace; font-size:13px}
+  .qr-wrap{text-align:center}
+  .qr{width:132px;height:132px;border-radius:12px; background:var(--paper-2); border:1px dashed #b9ad93; padding:8px; position:relative}
+  .qr canvas{border-radius:6px; display:block}
+  .qr .tag{position:absolute; inset:auto 0 6px 0; font-size:9px; font-weight:800; color:var(--saffron-deep)}
+  .qr-cap{font-size:10.5px; color:var(--ink-soft); margin-top:7px; line-height:1.4}
+  .stamp{position:absolute; left:50%; top:2px; font-family:var(--font-display); font-weight:700; font-size:15px;
+    color:var(--emerald); border:2.5px solid var(--emerald); border-radius:9px; padding:4px 10px; letter-spacing:.05em;
+    transform:translateX(-50%) rotate(-9deg); opacity:.9; animation:stamp .5s cubic-bezier(.2,1.4,.4,1) both}
+
+  .empty{padding:46px 26px; text-align:center; color:var(--ink-soft)}
+  .empty .big{font-family:var(--font-display); font-size:20px; color:var(--ink); margin-bottom:6px; font-weight:600}
+  .hidden{display:none !important}
+
+  /* toast */
+  #toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px); z-index:50;
+    background:var(--ink); color:#fdf7ea; font-weight:600; font-size:13.5px; padding:12px 20px; border-radius:100px;
+    box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:.3s}
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
+  @keyframes pop{from{opacity:0; transform:translateY(6px) scale(.97)} to{opacity:1; transform:none}}
+  @keyframes rise{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
+  @keyframes stamp{from{opacity:0; transform:translateX(-50%) rotate(4deg) scale(1.6)} to{opacity:.9; transform:translateX(-50%) rotate(-9deg) scale(1)}}
+  @keyframes blink{0%,60%,100%{opacity:.3; transform:translateY(0)} 30%{opacity:1; transform:translateY(-2px)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="appbar">
+    <div class="brand">
+      <div class="mark">व</div>
+      <div>
+        <h1>VyaparAI</h1>
+        <div class="sub">Quote-to-Cash Autopilot · GST e-invoicing for Bharat's MSMEs</div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <span class="pill" id="apiPill"><span class="dot" id="apiDot"></span><span id="apiTxt">connecting…</span></span>
+    <button class="ghostbtn" id="replay">↻ Replay demo</button>
+  </header>
+
+  <div class="stage">
+    <!-- WhatsApp -->
+    <section class="phone">
+      <div class="screen">
+        <div class="wa-head">
+          <div class="wa-ava">SE</div>
+          <div>
+            <div class="nm">Sharma Electricals</div>
+            <div class="st">customer · online</div>
+          </div>
+        </div>
+        <div class="wa-body" id="chat"></div>
+        <div class="wa-foot">
+          <input id="chatInput" placeholder="Type an inquiry — EN / हिंदी / Hinglish">
+          <button id="chatSend" title="Send">➤</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Review desk -->
+    <section class="desk">
+      <div class="card" id="quoteCard">
+        <div class="chead">
+          <div>
+            <div class="eyebrow">Owner's desk · human-in-the-loop</div>
+            <h2>Quote review</h2>
+          </div>
+          <span class="status pend hidden" id="qStatus">● Pending approval</span>
+        </div>
+        <div class="cbody" id="quoteBody">
+          <div class="empty">
+            <div class="big">Waiting for a customer inquiry…</div>
+            An incoming WhatsApp message will be parsed into a GST quote here for you to approve.
+          </div>
+        </div>
+      </div>
+
+      <div class="card hidden" id="invoiceCard">
+        <div class="chead">
+          <div>
+            <div class="eyebrow">GST e-invoice</div>
+            <h2>Tax invoice</h2>
+          </div>
+          <span class="status appr" id="invStatus">✓ Approved</span>
+        </div>
+        <div class="cbody" id="invoiceBody" style="position:relative"></div>
+      </div>
+    </section>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const INR = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2});
+const LANG = {en:'English', hi:'हिन्दी', hinglish:'Hinglish', other:'Other'};
+const DEMO = "bhai 50 LED bulb 9W aur 10 ceiling fan ka quote bhej do";
+const qs = s => document.querySelector(s);
+let state = {quoteId:null, invoiceNo:null, busy:false};
+
+function toast(msg){ const t=qs('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600); }
+async function api(path, body){
+  const r = await fetch(path, {method:'POST', headers:{'content-type':'application/json'}, body: body?JSON.stringify(body):undefined});
+  if(!r.ok) throw new Error((await r.text())||r.status); return r.json();
+}
+function bubble(kind, html){
+  const now = new Date();
+  const tm = String(now.getHours()%12||12).padStart(1,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const tick = kind==='out' ? ' <span class="tick">✓✓</span>' : '';
+  const b = document.createElement('div');
+  b.className = 'msg '+kind + (html.includes('qline')?' card-msg':'');
+  b.innerHTML = html + '<span class="t">'+tm+tick+'</span>';
+  qs('#chat').appendChild(b); qs('#chat').scrollTop = 1e9; return b;
+}
+function typing(on){
+  let t = qs('#typing');
+  if(on){ if(!t){ t=document.createElement('div'); t.id='typing'; t.className='typing'; t.innerHTML='<i></i><i></i><i></i>'; qs('#chat').appendChild(t); qs('#chat').scrollTop=1e9; } }
+  else if(t){ t.remove(); }
+}
+const qty = n => Number.isInteger(n)? n : n;
+
+function renderQuote(q){
+  state.quoteId = q.quote_id; state.invoiceNo=null;
+  qs('#invoiceCard').classList.add('hidden');
+  const heur = (q.notes||[]).some(n=>/Heuristic offline/.test(n));
+  const inter = (q.total_igst||0) > 0;
+  const rows = q.lines.map(l=>{
+    const tax=(l.cgst||0)+(l.sgst||0)+(l.igst||0);
+    return `<tr>
+      <td><div class="nm">${l.name}</div><span class="hsn">HSN ${l.hsn}</span></td>
+      <td class="r money">${qty(l.qty)} <span style="color:var(--ink-soft)">${l.unit}</span></td>
+      <td class="r money">${INR.format(l.unit_price)}</td>
+      <td class="r"><span class="gp">${l.gst_rate}%</span></td>
+      <td class="r money">${INR.format(tax)}</td>
+      <td class="r money"><b>${INR.format(l.line_total)}</b></td></tr>`;
+  }).join('');
+  const taxTot = inter
+    ? `<div class="trow"><span>IGST</span><b>${INR.format(q.total_igst)}</b></div>`
+    : `<div class="trow"><span>CGST</span><b>${INR.format(q.total_cgst)}</b></div>
+       <div class="trow"><span>SGST</span><b>${INR.format(q.total_sgst)}</b></div>`;
+  const noteHtml = (q.notes||[]).filter(n=>!/Heuristic offline/.test(n))
+    .map(n=>`<div class="note">${n}</div>`).join('');
+  qs('#quoteBody').innerHTML = `
+    <div class="understand">
+      <span class="chip lang">🌐 ${LANG[q.detected_language]||q.detected_language||'—'}</span>
+      <span class="chip nlu ${heur?'heur':''}">${heur?'⚙ Heuristic NLU':'✦ Qwen NLU'}</span>
+      <span class="chip">Quote <b>${q.quote_id}</b></span>
+      <span class="chip">${inter?'Inter-state · IGST':'Intra-state · CGST+SGST'}</span>
+    </div>
+    <div class="rawq">Agent understood <b>${q.lines.length}</b> line item(s) and matched them to your catalog:</div>
+    <table class="q">
+      <thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">GST</th><th class="r">Tax</th><th class="r">Amount</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="totals">
+      <div class="trow"><span>Taxable value</span><b>${INR.format(q.taxable_total)}</b></div>
+      ${taxTot}
+      <div class="grand"><span>Grand total</span><b>${INR.format(q.grand_total)}</b></div>
+    </div>
+    ${noteHtml?`<div class="notes">${noteHtml}</div>`:''}
+    <div class="actions">
+      <button class="btn primary" id="approveBtn">✓ Approve &amp; generate e-invoice</button>
+      <button class="btn ghost" id="editBtn">Ask for changes</button>
+    </div>`;
+  qs('#quoteCard').classList.remove('hidden'); qs('#quoteCard').classList.add('rise');
+  qs('#qStatus').classList.remove('hidden');
+  qs('#approveBtn').onclick = approve;
+  qs('#editBtn').onclick = ()=> toast('Clarification round-trip — coming in the live-Qwen build');
+}
+
+function drawQR(canvas, payload){
+  const ctx=canvas.getContext('2d'); const N=25, cell=canvas.width/N;
+  ctx.fillStyle='#FBF7EE'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  let seed=2166136261; for(let i=0;i<payload.length;i++){seed^=payload.charCodeAt(i); seed=Math.imul(seed,16777619);}
+  const rnd=()=>{seed=(Math.imul(seed,1103515245)+12345)&0x7fffffff; return seed/0x7fffffff;};
+  ctx.fillStyle='#211C15';
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){ if(rnd()>0.52) ctx.fillRect(x*cell,y*cell,cell+.6,cell+.6); }
+  const fin=(fx,fy)=>{ctx.fillStyle='#211C15';ctx.fillRect(fx*cell,fy*cell,7*cell,7*cell);
+    ctx.fillStyle='#FBF7EE';ctx.fillRect((fx+1)*cell,(fy+1)*cell,5*cell,5*cell);
+    ctx.fillStyle='#211C15';ctx.fillRect((fx+2)*cell,(fy+2)*cell,3*cell,3*cell);};
+  fin(0,0);fin(N-7,0);fin(0,N-7);
+}
+
+function renderInvoice(inv){
+  state.invoiceNo = inv.invoice_no;
+  const q=inv.quote;
+  qs('#invoiceBody').innerHTML = `
+    <div class="stamp">APPROVED</div>
+    <div class="inv-grid">
+      <div class="kv">
+        <div><div class="k">Invoice no.</div><div class="v">${inv.invoice_no}</div></div>
+        <div><div class="k">IRN (e-invoice)</div><div class="v mono">${inv.irn}</div></div>
+        <div><div class="k">Seller GSTIN</div><div class="v mono">${inv.seller_gstin}</div></div>
+        <div><div class="k">Grand total</div><div class="v" style="color:var(--emerald)">${INR.format(q.grand_total)}</div></div>
+        <div class="actions" style="margin-top:2px">
+          <button class="btn go" id="sendBtn">Send on WhatsApp</button>
+        </div>
+      </div>
+      <div class="qr-wrap">
+        <div class="qr"><canvas width="116" height="116"></canvas><span class="tag">e-INVOICE</span></div>
+        <div class="qr-cap">Sample QR · real IRN + signed QR<br>wire up via IRP sandbox (task #4)</div>
+      </div>
+    </div>`;
+  qs('#invoiceCard').classList.remove('hidden'); qs('#invoiceCard').classList.add('rise');
+  drawQR(qs('#invoiceBody canvas'), inv.qr_payload||inv.invoice_no);
+  qs('#qStatus').className='status appr'; qs('#qStatus').textContent='✓ Approved';
+  qs('#invoiceBody').scrollIntoView({behavior:'smooth', block:'nearest'});
+  qs('#sendBtn').onclick = sendInvoice;
+}
+
+async function processInquiry(text){
+  if(state.busy) return; state.busy=true;
+  bubble('in', escapeHtml(text));
+  typing(true);
+  try{
+    await new Promise(r=>setTimeout(r,850));
+    const q = await api('/inquiry', {text, intra_state:true});
+    typing(false);
+    renderQuote(q);
+    bubble('out','Got it 🙏 Drafted a quote for <b>'+q.lines.length+'</b> item(s), total <b>'+INR.format(q.grand_total)+'</b>. Sending after owner approval →');
+  }catch(e){ typing(false); toast('Error: '+e.message); }
+  finally{ state.busy=false; }
+}
+async function approve(){
+  const btn=qs('#approveBtn'); if(btn){btn.disabled=true; btn.textContent='Generating e-invoice…';}
+  try{
+    const inv = await api('/approve/'+state.quoteId);
+    if(btn){btn.textContent='✓ Approved'; btn.classList.remove('primary'); btn.classList.add('ghost');}
+    renderInvoice(inv); toast('E-invoice '+inv.invoice_no+' generated');
+  }catch(e){ toast('Error: '+e.message); if(btn){btn.disabled=false; btn.textContent='✓ Approve & generate e-invoice';} }
+}
+async function sendInvoice(){
+  const btn=qs('#sendBtn'); if(btn){btn.disabled=true; btn.textContent='Sending…';}
+  try{
+    const r = await api('/send/'+state.invoiceNo);
+    const q = /* re-read grand total from invoice card */ qs('.kv .v[style]')?.textContent||'';
+    bubble('out','🧾 <b>Tax invoice '+state.invoiceNo+'</b><div class="qline"><span>Amount payable</span><span>'+q+'</span></div><div class="qtot qline"><span>Pay via UPI</span><span>vyapar@upi</span></div>');
+    if(btn){btn.textContent='Sent ✓';}
+    toast('Invoice delivered on WhatsApp ('+r.status+')');
+  }catch(e){ toast('Error: '+e.message); if(btn){btn.disabled=false; btn.textContent='Send on WhatsApp';} }
+}
+function escapeHtml(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+async function health(){
+  try{ const h = await (await fetch('/health')).json(); qs('#apiDot').className='dot';
+    qs('#apiTxt').textContent = h.qwen ? 'API live · Qwen NLU' : 'API live · offline NLU'; }
+  catch{ qs('#apiDot').className='dot off'; qs('#apiTxt').textContent='API offline'; }
+}
+function runDemo(){
+  qs('#chat').innerHTML=''; state={quoteId:null,invoiceNo:null,busy:false};
+  qs('#quoteBody').innerHTML='<div class="empty"><div class="big">Reading the customer\'s message…</div>The agent is parsing the WhatsApp inquiry.</div>';
+  qs('#invoiceCard').classList.add('hidden'); qs('#qStatus').classList.add('hidden');
+  setTimeout(()=>processInquiry(DEMO), 500);
+}
+
+qs('#chatSend').onclick = ()=>{ const v=qs('#chatInput').value.trim(); if(v){ qs('#chatInput').value=''; processInquiry(v); } };
+qs('#chatInput').addEventListener('keydown', e=>{ if(e.key==='Enter') qs('#chatSend').click(); });
+qs('#replay').onclick = runDemo;
+health(); runDemo();
+</script>
+</body>
+</html>

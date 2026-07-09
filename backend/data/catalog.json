@@ -1,0 +1,10 @@
+[
+  {"id": "LED-9W", "name": "LED Bulb 9W", "name_hi": "एलईडी बल्ब 9W", "keywords": ["bulb", "light", "led", "batti"], "hsn": "8539", "gst_rate": 12, "unit": "pcs", "unit_price": 85, "stock": 420},
+  {"id": "FAN-CEIL", "name": "Ceiling Fan 1200mm", "name_hi": "छत का पंखा", "keywords": ["fan", "ceiling", "pankha"], "hsn": "8414", "gst_rate": 18, "unit": "pcs", "unit_price": 1450, "stock": 75},
+  {"id": "WIRE-1.5", "name": "Copper Wire 1.5 sqmm (90m)", "name_hi": "तांबे का तार", "keywords": ["wire", "cable", "copper", "taar"], "hsn": "8544", "gst_rate": 18, "unit": "coil", "unit_price": 1180, "stock": 120},
+  {"id": "MCB-16A", "name": "MCB 16A Single Pole", "name_hi": "एमसीबी 16A", "keywords": ["mcb", "breaker", "switch"], "hsn": "8536", "gst_rate": 18, "unit": "pcs", "unit_price": 210, "stock": 300},
+  {"id": "SOCKET-6A", "name": "Modular Switch Socket 6A", "name_hi": "स्विच सॉकेट", "keywords": ["socket", "switch", "modular", "plug"], "hsn": "8536", "gst_rate": 18, "unit": "pcs", "unit_price": 95, "stock": 540},
+  {"id": "PIPE-PVC-25", "name": "PVC Conduit Pipe 25mm (3m)", "name_hi": "पीवीसी पाइप", "keywords": ["pipe", "conduit", "pvc"], "hsn": "3917", "gst_rate": 18, "unit": "length", "unit_price": 68, "stock": 260},
+  {"id": "TAPE-INS", "name": "Insulation Tape (pack of 10)", "name_hi": "इन्सुलेशन टेप", "keywords": ["tape", "insulation"], "hsn": "3919", "gst_rate": 18, "unit": "pack", "unit_price": 150, "stock": 190},
+  {"id": "INV-1KVA", "name": "Inverter 1kVA", "name_hi": "इन्वर्टर", "keywords": ["inverter", "ups"], "hsn": "8504", "gst_rate": 18, "unit": "pcs", "unit_price": 4200, "stock": 35}
+]
