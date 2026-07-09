@@ -1,86 +1,188 @@
-# VyaparAI — Quote-to-Cash Autopilot for Indian MSMEs
+<div align="center">
 
-> Submission for the **Global AI Hackathon Series with Qwen Cloud** — Track 4: **Autopilot Agent**.
-> A bilingual (English / Hindi / Hinglish) agent that turns a raw customer inquiry into an
-> **approved, GST-compliant quote & e-invoice** — with a human checkpoint before anything is sent.
+# व VyaparAI
+
+### The autonomous quote-to-cash agent for Bharat's 60 million MSMEs
+
+**WhatsApp inquiry in → GST e-invoice out. In English, हिंदी, or Hinglish. With the owner in the loop.**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f?style=flat-square)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](requirements.txt)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?style=flat-square&logo=fastapi&logoColor=white)](backend/app.py)
+[![Qwen Cloud](https://img.shields.io/badge/Qwen_Cloud-qwen--plus-6E38F7?style=flat-square)](https://www.qwencloud.com)
+[![Alibaba Cloud](https://img.shields.io/badge/Deployed_on-Alibaba_Cloud-FF6A00?style=flat-square&logo=alibabacloud&logoColor=white)](DEPLOY.md)
+[![Track](https://img.shields.io/badge/Hackathon_Track-Autopilot_Agent-DC6B18?style=flat-square)](https://qwencloud-hackathon.devpost.com/)
+
+<br>
+
+<img src="docs/screenshot.png" alt="VyaparAI — a Hinglish WhatsApp inquiry becoming a GST quote, with the Qwen agent's tool-calling trace visible" width="900">
+
+*A real session: a Hinglish WhatsApp message, the Qwen agent's live tool-calling trace, and a GST-correct quote awaiting the owner's approval.*
+
+</div>
+
+---
 
 ## The problem
-India has 60M+ MSMEs. Most take orders over **WhatsApp** in mixed English/Hindi, then manually
-look up prices, classify **HSN codes**, compute **GST (CGST/SGST/IGST)**, and raise a compliant
-invoice. It's slow and error-prone. VyaparAI automates the whole **quote-to-cash** path.
 
-## What it does
-1. **Understands** a free-text inquiry in English, Hindi, or Hinglish (Qwen).
-2. A **Qwen function-calling agent** searches the catalog, **classifies the HSN code + GST rate for off-catalog items**, adds line items, and asks clarifying questions.
-3. **Builds a quote** with correct GST math (intra-state CGST+SGST or inter-state IGST).
-4. **Human-in-the-loop:** the owner reviews & approves before anything goes out.
-5. **Generates a GST e-invoice** (HSN summary, IRN + QR) and **sends** it back over WhatsApp.
+India runs on **60M+ MSMEs**, and MSMEs run on **WhatsApp**. A typical order looks like:
 
-## The agent (not just one LLM call)
-A real Qwen tool-calling loop (`backend/agent/agent_loop.py`) with five tools —
-`search_catalog`, `classify_hsn`, `add_line_item`, `request_clarification`,
-`finalize_quote`. The model decides what to call; the UI shows the reasoning trace.
-Example: asked for an off-catalog *"solar panel 100W"*, the agent detects the bad
-catalog match and calls `classify_hsn` itself → **HSN 8541 @ 5% GST** (correct for
-solar in India). A deterministic fallback keeps it working if the model/key is down.
+> *"bhai 50 LED bulb 9W aur 10 ceiling fan ka quote bhej do"*
 
-## Architecture
+Behind that one message is a back office the owner doesn't have: parse the mixed Hindi-English, find each product, look up the right **HSN code**, apply the correct **GST rate**, split **CGST/SGST** (or **IGST** inter-state), total it to the rupee, raise a compliant invoice, send it, chase payment. Fifty times a day. By hand.
+
+**VyaparAI is that back office** — an autonomous Qwen agent that runs the entire quote-to-cash workflow and never sends a thing without the owner's approval.
+
+## How it works
+
+```
+📱 Customer message (EN / हिंदी / Hinglish)
+        │
+        ▼
+🧠 Qwen function-calling agent ──── search_catalog · classify_hsn · add_line_item
+        │                            request_clarification · finalize_quote
+        ▼
+🧾 GST-correct quote (HSN · CGST/SGST/IGST)
+        │
+        ▼
+👤 HUMAN-IN-THE-LOOP — owner reviews & approves      ← nothing ships without this
+        │
+        ▼
+✅ GST e-invoice (invoice no · IRN · QR) ──▶ 📲 back to WhatsApp, with a UPI pay line
+```
+
+## 🧠 A real agent, not a prompt
+
+The core is a genuine **Qwen tool-calling loop** ([`backend/agent/agent_loop.py`](backend/agent/agent_loop.py)): the model decides which of five tools to call, in what order, until the job is done — and the UI shows every step.
+
+Here's an actual trace. We asked for two catalog items **plus a solar panel we don't stock**:
+
+```text
+🔍 search_catalog   "LED bulb 9W"       →  LED Bulb 9W · HSN 8539 · 12%
+🔍 search_catalog   "ceiling fan"       →  Ceiling Fan 1200mm · HSN 8414 · 18%
+🔍 search_catalog   "solar panel 100W"  →  (bad fuzzy match: insulation tape)
+➕ add_line_item    20 × LED Bulb 9W    →  ₹85 · 12% GST
+➕ add_line_item    5 × Ceiling Fan     →  ₹1,450 · 18% GST
+🏷️ classify_hsn     "solar panel 100W"  →  HSN 8541 · 5%        ← the agent caught the
+➕ add_line_item    3 × solar PV panel                              bad match and classified
+✅ finalize_quote   → 3 line items                                  it itself. Not hardcoded.
+```
+
+The agent noticed the catalog's fuzzy match was wrong, **reached for its HSN-classification tool on its own**, and landed on **HSN 8541 @ 5% GST — the correct Indian GST treatment for solar panels**. LLM judgment where it's strong; deterministic code where money is involved:
+
+| Layer | Who does it | Why |
+|---|---|---|
+| Language detection, parsing, HSN classification, tool choice | **Qwen (`qwen-plus`)** | Judgment, multilingual understanding, domain knowledge |
+| Taxable value, CGST/SGST/IGST split, rounding, totals | **Deterministic GST engine** | Money math must be exact, every time |
+| Approve & send | **The human owner** | An autopilot you can trust has a checkpoint |
+
+## ✨ Features
+
+|  |  |
+|---|---|
+| 🗣️ **Bilingual by default** | English, Devanagari Hindi, and code-mixed Hinglish — detected and labeled per quote |
+| 🛠️ **Five-tool agent loop** | `search_catalog` · `classify_hsn` · `add_line_item` · `request_clarification` · `finalize_quote` |
+| 🏷️ **Off-catalog HSN classification** | Items you don't stock get a correct HSN + GST rate from the model |
+| 🧮 **GST-correct math** | Per-item HSN, 12%/18%/5% rates, intra-state CGST+SGST or inter-state IGST |
+| ❓ **Clarifying questions** | Ambiguity (specs, brand, delivery) becomes non-blocking questions, not guesses |
+| 👤 **Human-in-the-loop** | The owner approves every quote before the e-invoice exists |
+| 🧾 **E-invoice + WhatsApp delivery** | Invoice no, IRN, QR — sent back into the chat with a UPI payment line |
+| 🪂 **Graceful degradation** | Model or key down? A heuristic parser keeps quotes flowing |
+| 👀 **Transparent reasoning** | The full tool-call trace renders in the review UI |
+
+## 🏗️ Architecture
+
 ```mermaid
 flowchart TD
-    A[Customer inquiry<br/>WhatsApp / email<br/>EN / HI / Hinglish] --> B[Qwen Agent<br/>function-calling loop]
-    B -->|parse_inquiry| C[Structured order]
-    C -->|catalog_lookup| D[(Product catalog<br/>HSN / GST / stock)]
-    D --> E[build_quote<br/>GST math: CGST/SGST/IGST]
-    E --> F{Ambiguous or<br/>missing info?}
-    F -->|yes| G[Ask clarifying question]
-    G --> B
-    F -->|no| H[[Human-in-the-loop<br/>review and approve]]
-    H -->|approve| I[generate_gst_invoice<br/>HSN summary / IRN / QR]
-    I --> J[send<br/>WhatsApp / email]
-    B -.deployed on.-> K[Alibaba Cloud<br/>Function Compute / ECS]
+    A["📱 Customer inquiry<br/>WhatsApp / email<br/>EN · हिंदी · Hinglish"] --> B["🧠 Qwen Agent<br/>function-calling loop<br/>(qwen-plus on Qwen Cloud)"]
+    B -->|search_catalog| D[("📦 Product catalog<br/>HSN · GST rate · stock")]
+    B -->|classify_hsn| E["🏷️ Off-catalog<br/>HSN + GST classification"]
+    B -->|request_clarification| F["❓ Clarifying questions"]
+    B -->|finalize_quote| G["🧮 Deterministic GST engine<br/>CGST / SGST / IGST"]
+    G --> H{{"👤 HUMAN-IN-THE-LOOP<br/>owner reviews & approves"}}
+    H -->|approve| I["🧾 GST e-invoice<br/>invoice no · IRN · QR"]
+    I --> J["📲 WhatsApp delivery<br/>+ UPI payment line"]
+    B -.deployed on.-> K["☁️ Alibaba Cloud<br/>Function Compute / ECS"]
+    style H fill:#f6eccf,stroke:#b9821a,stroke-width:2px
+    style B fill:#efe6ff,stroke:#6e38f7,stroke-width:2px
 ```
-Reasoning runs on **Qwen models on Qwen Cloud**; the service is deployed on **Alibaba Cloud**.
 
-## Why it wins (judging criteria)
-- **Technical depth (30%):** Qwen tool-calling, multilingual extraction, GST/HSN logic, e-invoice IRN/QR.
-- **Innovation (30%):** Hindi/Hinglish + compliance-aware autopilot — an angle few entrants will have.
-- **Impact (25%):** real pain for tens of millions of Indian MSMEs; clear path to a product.
-- **Presentation (15%):** clean demo + a write-up that also targets the separate Blog Award.
+## 🚀 Quickstart
 
-## Tech stack
-Python · FastAPI · Pydantic · Qwen Cloud (OpenAI-compatible) · Alibaba Cloud.
-
-## Quickstart
 ```bash
+git clone https://github.com/SaudSatopay/vyaparai.git && cd vyaparai
 python -m venv .venv
-# Windows: .venv\Scripts\activate     |  macOS/Linux: source .venv/bin/activate
+# Windows: .venv\Scripts\activate      macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-copy .env.example .env                # add QWEN_API_KEY (runs in a naive offline mode without it)
-uvicorn backend.app:app --reload
+cp .env.example .env                   # add your QWEN_API_KEY
+uvicorn backend.app:app --reload       # open http://localhost:8000
 ```
-Try it:
+
+> No key yet? It still runs — the heuristic fallback parses basic inquiries so the full flow stays demoable.
+
+Try the agent from the terminal:
+
 ```bash
-# 1) inquiry -> draft quote (pending approval)
 curl -X POST localhost:8000/inquiry -H "content-type: application/json" \
-  -d "{\"text\":\"bhai 50 led bulb 9w aur 10 ceiling fan ka quote bhej do\"}"
-
-# 2) human approves -> GST e-invoice
-curl -X POST localhost:8000/approve/Q-1001
+  -d '{"text":"bhai 50 led bulb 9w aur 10 ceiling fan ka quote bhej do"}'
 ```
 
-## Roadmap
-- [x] Quote-to-cash flow: inquiry → quote → approve → invoice → send
-- [x] GST math (CGST/SGST/IGST), HSN-tagged catalog
-- [x] Live Qwen Cloud (`qwen-plus`) wired
-- [x] Genuine Qwen tool-calling agent + off-catalog HSN classification + reasoning trace
-- [x] WhatsApp-style human-in-the-loop review UI
-- [x] Alibaba Cloud deploy kit (`Dockerfile`, ECS unit, `DEPLOY.md`)
-- [ ] Live IRP sandbox for a real signed IRN + QR
-- [ ] WhatsApp Cloud API channel + UPI payment links
+### API
 
-## Note
-GST rates / HSN codes in `backend/data/catalog.json` are **illustrative samples** for the demo,
-not tax advice. Confirm current rates before any production use.
+| Endpoint | What it does |
+|---|---|
+| `POST /inquiry` | Free-text inquiry → agent runs → draft GST quote (pending approval) |
+| `POST /approve/{quote_id}` | 👤 Human checkpoint → generates the GST e-invoice |
+| `POST /send/{invoice_no}` | Delivers the invoice (WhatsApp channel) |
+| `GET /health` | Liveness + whether live Qwen NLU is active |
+| `GET /` | The WhatsApp-style human-in-the-loop review UI |
 
-## License
-MIT — see [LICENSE](LICENSE).
+## ☁️ Deploying on Alibaba Cloud
+
+Reasoning runs on **Qwen Cloud** (`qwen-plus`, OpenAI-compatible endpoint); the service deploys to **Alibaba Cloud** either way you like — see **[DEPLOY.md](DEPLOY.md)** for both step-by-step paths:
+
+- **Function Compute** (serverless, container image, scales to zero), or
+- **ECS** (one small VM + the provided [`systemd` unit](deploy/vyapar.service))
+
+## 📁 Project structure
+
+```
+├── backend/
+│   ├── app.py                 # FastAPI surface (inquiry → approve → send)
+│   ├── models.py              # Quote / Invoice / LineItem (GST fields, agent trace)
+│   ├── data/catalog.json      # HSN-tagged demo catalog
+│   └── agent/
+│       ├── agent_loop.py      # ⭐ the Qwen function-calling agent (5 tools)
+│       ├── orchestrator.py    # quote-to-cash flow + human checkpoint + fallback
+│       ├── qwen_client.py     # Qwen Cloud client · HSN classifier · heuristic fallback
+│       └── tools.py           # catalog search · GST engine · e-invoice · delivery
+├── frontend/index.html        # WhatsApp-style review UI (zero-build, single file)
+├── docs/                      # demo script · blog post · screenshot
+├── Dockerfile · deploy/       # Alibaba Cloud deployment kit
+└── DEPLOY.md · SUBMISSION.md
+```
+
+## 🗺️ Roadmap
+
+- [x] Qwen tool-calling agent with off-catalog HSN classification + reasoning trace
+- [x] GST engine (CGST/SGST/IGST) · bilingual UI · human-in-the-loop · e-invoice + delivery
+- [x] Alibaba Cloud deploy kit
+- [ ] Live IRP sandbox integration → genuine signed IRN + QR
+- [ ] WhatsApp Cloud API as a production channel
+- [ ] UPI deep-link payments · ledger/ERP sync
+- [ ] Two-way clarification loop with the customer
+
+## ⚖️ Note
+
+Built for the **[Global AI Hackathon Series with Qwen Cloud](https://qwencloud-hackathon.devpost.com/)** — **Autopilot Agent** track. Catalog prices, GST rates, and HSN codes in the demo data are illustrative, not tax advice. The seller GSTIN shown is a sample.
+
+## 📄 License
+
+[MIT](LICENSE) — build on it.
+
+<div align="center">
+<br>
+
+**VyaparAI** — *a back office for Bharat's 60 million MSMEs, in any language they type.*
+
+</div>

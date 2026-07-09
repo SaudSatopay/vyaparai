@@ -8,3 +8,6 @@ venv/
 dist/
 build/
 node_modules/
+
+# local dev tooling (machine-specific paths)
+.claude/
