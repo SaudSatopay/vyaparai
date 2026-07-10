@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VyaparAI — Quote-to-Cash Autopilot</title>
+<meta name="description" content="VyaparAI — an autonomous Qwen agent that turns WhatsApp inquiries (English / Hindi / Hinglish) into approved GST e-invoices with UPI scan-to-pay. Quote-to-cash for India's 60M MSMEs.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%23DC6B18'/%3E%3Ctext x='50' y='72' font-size='60' text-anchor='middle' fill='white' font-family='Georgia,serif'%3E%E0%A4%B5%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
@@ -519,6 +521,9 @@ async function processInquiry(text){
   if(state.busy) return; state.busy=true;
   bubble('in', escapeHtml(text));
   typing(true);
+  qs('#invoiceCard').classList.add('hidden');
+  qs('#qStatus').classList.add('hidden');
+  qs('#quoteBody').innerHTML = '<div class="empty"><div class="big">🧠 Agent at work…</div>Qwen is parsing the message, matching your catalog, and computing GST.</div>';
   try{
     await new Promise(r=>setTimeout(r,850));
     const q = await api('/inquiry', {text, intra_state:!state.inter, customer_name:'Sharma Electricals'});

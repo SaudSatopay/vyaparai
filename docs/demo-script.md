@@ -1,54 +1,67 @@
-# VyaparAI — 3-minute demo video script
+# VyaparAI — 3-minute demo video script (final feature set)
 
-Screen-record the app (deployed URL or localhost) with a voiceover. Target **≤ 3:00**.
-The **solar-panel moment (0:50–1:30) is the highlight** — make sure the agent trace is
-readable on screen.
+Record on **localhost:8000** (voice features need a secure context) in Chrome/Edge,
+with your **phone in hand** for the QR moment. Target **≤ 3:00**. The two highlights:
+the **off-catalog solar-panel classification** (~0:55) and the **natural-language
+revision** (~1:25) — keep both readable on screen.
 
 ---
 
-**[0:00–0:20] Hook + problem**
-*Show:* the WhatsApp chat panel.
-> "60 million small businesses in India run on WhatsApp. A customer messages in Hindi,
-> English, or a mix — and the owner has to look up prices, figure out HSN codes,
-> calculate GST, and raise a compliant invoice by hand. It's slow and error-prone.
-> This is VyaparAI — an autonomous agent that does the whole thing."
+**[0:00–0:15] Hook**
+*Show:* the app — WhatsApp panel + empty desk.
+> "60 million Indian small businesses take orders on WhatsApp — in Hindi, English, or
+> both mixed. Every order means price lookups, HSN codes, GST math, and a compliant
+> invoice, all by hand. This is VyaparAI: an autonomous Qwen agent that runs the whole
+> thing — with the owner in charge."
 
-**[0:20–0:50] Inquiry → the agent reasons**
-*Show:* the Hinglish message arrive — *"bhai 50 LED bulb 9W aur 10 ceiling fan ka quote bhej do"* — then the agent trace appear.
-> "The customer asks for a quote in Hinglish. VyaparAI's Qwen agent detects the
-> language and goes to work — and you can watch it reason: it searches the catalog and
-> pulls the real HSN codes and GST rates."
+**[0:15–0:45] Voice order → the agent reasons**
+*Action:* tap 🎤 and **speak**: *"bhai 500 LED bulb 9W, 10 ceiling fan aur 3 solar panel ka quote bhej do"*.
+*Show:* transcript lands, typing dots, then the **agent trace** streaming tool calls.
+> "I just *spoke* the order in Hinglish. The agent detects the language and gets to
+> work — watch it reason: catalog search, real HSN codes, real GST rates."
 
-**[0:50–1:30] The wow — off-catalog HSN classification**
-*Show:* send a message including *"3 solar panel 100W"*; zoom the trace on `classify_hsn`.
-> "Now watch something that isn't in the catalog. The agent notices the catalog match
-> is wrong — and on its own calls a classification tool. Solar panel: HSN 8541, 5% GST —
-> the correct Indian GST treatment, figured out live by the model. No hardcoding."
+**[0:45–1:10] The classification wow + stock alert**
+*Show:* zoom the trace on `classify_hsn`; point at the amber notes.
+> "Solar panels aren't in the catalog — the agent noticed the bad match and called its
+> HSN classifier on its own: **HSN 8541, 5% GST — the correct Indian treatment.**
+> And see this: I asked for 500 bulbs; it flags that only 420 are in stock. An
+> autopilot with judgment."
 
-**[1:30–2:05] GST quote + human-in-the-loop**
-*Show:* the quote card — line items, CGST/SGST split, grand total.
-> "The result is a proper GST quote: per-item HSN, the correct CGST and SGST split, and
-> the grand total. Nothing goes out automatically — the owner reviews and approves.
-> That's the human-in-the-loop checkpoint."
-*Action:* click **Approve & generate e-invoice**.
+**[1:10–1:40] "Ask for changes" — natural-language revision**
+*Action:* click **Ask for changes**, type *"bulb 400 kar do aur 10% discount de do"* → Revise.
+*Show:* the quote re-renders — **🔁 revision 2** chip, new totals; then tap **🔊**.
+> "The owner doesn't fill forms — they just say what they want changed. Quantity fixed,
+> ten percent off, totals recomputed exactly. And the agent reads the quote back —
+> in Hindi. It speaks English too; the whole product does."
 
-**[2:05–2:35] E-invoice + delivery**
-*Show:* the invoice card (invoice no, IRN, QR, APPROVED stamp); click **Send on WhatsApp**; the invoice bubble drops into the chat.
-> "On approval, VyaparAI generates a GST e-invoice — invoice number, IRN, QR — and
-> sends it straight back to the customer on WhatsApp with a UPI payment line.
-> Quote to cash, done."
+**[1:40–2:10] Approve → a real GST e-invoice**
+*Action:* click **Approve & generate e-invoice**. Click the **e-invoice QR**.
+*Show:* the modal: big QR + **✓ SIGNATURE VERIFIED** + decoded payload.
+> "On approval: an e-invoice with the NIC INV-01 payload, an IRN computed with the
+> exact NIC SHA-256 algorithm, and a JWS-signed QR — click it, and VyaparAI verifies
+> the signature live. This is the compliance layer, built for real."
 
-**[2:35–3:00] Tech + close**
-*Show:* the architecture diagram in the README.
-> "Under the hood: a Qwen function-calling agent on Qwen Cloud, deployed on Alibaba
-> Cloud, with a graceful-degradation fallback so it never breaks. VyaparAI — a back
-> office for Bharat's 60 million MSMEs, in any language they type."
+**[2:10–2:40] UPI scan-to-pay → paid → ledger**
+*Action:* open the **UPI QR** modal; scan it with your **phone on camera** — GPay/PhonePe
+opens with ₹ amount pre-filled. Click **Send on WhatsApp**, then **💰 Mark paid**.
+*Show:* PAID stamp; the **ledger strip** ticks — collected ₹, GST ₹.
+> "Every invoice carries a UPI scan-to-pay QR — the amount arrives pre-filled. Payment
+> in, mark it paid — and the live ledger tracks collections and GST. Quote to cash,
+> closed."
+
+**[2:40–3:00] Close**
+*Show:* the README architecture diagram, then the live URL bar (47.84.111.3:8000).
+> "A Qwen function-calling agent on Qwen Cloud, deployed live on Alibaba Cloud, with
+> graceful degradation so it never breaks. VyaparAI — a back office for Bharat's 60
+> million MSMEs, in any language they type. Or speak."
 
 ---
 
 ### Recording tips
-- Do the two-item demo first, then a second message with the solar panel so the
-  `classify_hsn` step is unmistakable.
-- Let the agent-trace steps be on screen long enough to read (pause/scroll if needed).
-- Keep the language pill (`Hinglish`) and NLU pill (`Qwen NLU`) visible.
-- Upload to YouTube/Vimeo as **public or unlisted**; put the link in the submission.
+- **Practice the voice line once** — if the room is noisy, type it instead and lead
+  with the 🎤 on the revision instead.
+- Keep the chips visible: `🌐 Hinglish`, `✦ Qwen NLU`, `🔁 revision 2`.
+- The phone-scanning-the-UPI-QR shot is the most memorable 5 seconds — frame it.
+- One take in English afterwards if time allows ("I need 12 solar panels…") — flash it
+  during the close to prove full English parity.
+- Upload to YouTube/Vimeo **public or unlisted**; paste the link into SUBMISSION.md.

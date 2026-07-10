@@ -22,9 +22,16 @@ back-office clerk would — instantly, and in whatever language the customer typ
    clarifying questions when the request is ambiguous; and finalizes.
 3. Computes a **correct GST quote** — CGST/SGST intra-state or IGST inter-state, with
    per-item HSN and rate.
-4. **Human-in-the-loop:** the owner reviews and approves before anything is sent.
-5. Generates a **GST e-invoice** (invoice no, IRN, QR) and delivers it back over
-   WhatsApp with a UPI payment line.
+4. **Human-in-the-loop:** the owner reviews — and can **revise in natural language**
+   (*"bulb 40 kar do, 10% discount de do"* or *"reduce the bulbs to 20"*) — before approving.
+5. Generates a **GST e-invoice**: NIC INV-01 v1.1 payload, IRN (NIC SHA-256 algorithm),
+   a **JWS-signed QR you can click-to-expand and verify in-app**, a printable tax
+   invoice, and a **UPI scan-to-pay QR** with the amount pre-filled.
+6. Delivers it on WhatsApp; **Mark paid** closes the loop and a **live ledger strip**
+   tracks quotes, invoices, collections, and GST.
+7. Works **by voice too** — speak the order in Hindi/Hinglish or English (`hi-IN`/`en-IN`),
+   and the agent reads the quote back aloud in the inquiry's language.
+8. **Stock-aware:** over-asks are flagged before approval (*"asked 500, only 420 in stock"*).
 
 ## How we built it
 - **Qwen Cloud (`qwen-plus`)** via the OpenAI-compatible endpoint — the agent's brain
@@ -59,8 +66,15 @@ quote. The full tool-call trace is shown live in the UI.
 - **Standards-real e-invoicing:** NIC INV-01 v1.1 payload, IRN computed with the exact
   NIC SHA-256 algorithm, a JWS-signed **scannable** QR, and a printable tax invoice
   with amount-in-words (Indian lakh/crore system).
-- Bilingual, WhatsApp-native, with a real human-in-the-loop approval step.
-- Production-minded: graceful degradation, clean architecture, one-command deploy.
+- **Natural-language quote revision** — a second agent pass that handles compound
+  instructions ("reduce to 20, remove the fans, add a stabilizer with 5% off") with
+  exact math, in English or Hinglish.
+- **Voice in, voice out** — speech recognition for orders, speech synthesis reading
+  quotes back, both language-aware.
+- Bilingual, WhatsApp-native, with a real human-in-the-loop approval step —
+  plus UPI scan-to-pay, a stock-aware agent, and a live collections ledger.
+- Production-minded: graceful degradation, clean architecture, one-command deploy,
+  live on Alibaba Cloud ECS.
 
 ## What we learned
 - Qwen's function-calling plus its Indian domain knowledge (HSN/GST) is strong enough
@@ -68,17 +82,18 @@ quote. The full tool-call trace is shown live in the UI.
 - The winning UX for Bharat is **WhatsApp + the local language**, not a dashboard.
 
 ## What's next
-- Live **IRP sandbox** integration for a real signed IRN + QR.
-- **WhatsApp Cloud API** channel.
-- **UPI** payment links + ledger / ERP sync.
-- Multi-turn clarification loop directly with the customer.
+- Live **IRP registration** (GSTIN-gated credentials) for an NIC-signed IRN + QR —
+  the seam is ready in `einvoice.register_invoice()`.
+- **WhatsApp Cloud API** as a production channel.
+- Payment reconciliation + ledger/ERP sync.
+- Two-way clarification loop directly with the customer.
 
 ## Built with
-`Qwen Cloud` · `qwen-plus` · `Alibaba Cloud` · `Function Compute` · `Python` ·
-`FastAPI` · `Pydantic` · `OpenAI SDK` · `HTML/CSS/JS`
+`Qwen Cloud` · `qwen-plus` · `Alibaba Cloud ECS` · `Python` · `FastAPI` · `Pydantic` ·
+`OpenAI SDK` · `segno` · `Web Speech API` · `HTML/CSS/JS`
 
-## Links (fill in)
+## Links
 - **Live demo:** http://47.84.111.3:8000 (Alibaba Cloud ECS, Singapore — `ecs.e-c1m1.large`, Ubuntu 22.04, systemd service)
-- **Repository:** {REPO_URL}
-- **Video (≈3 min):** {VIDEO_URL}
+- **Repository:** https://github.com/SaudSatopay/vyaparai
+- **Video (≈3 min):** {VIDEO_URL — fill after recording}
 - **Track:** Autopilot Agent
