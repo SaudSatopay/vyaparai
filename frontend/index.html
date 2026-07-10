@@ -588,8 +588,17 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeQrModal(); }
 (function(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const btn = qs('#micBtn'), langBtn = qs('#micLang');
-  if(!SR || !window.isSecureContext){ return; } // needs Chrome/Edge + HTTPS or localhost
-  btn.classList.remove('hidden'); langBtn.classList.remove('hidden');
+  btn.classList.remove('hidden'); langBtn.classList.remove('hidden'); // always visible
+  if(!SR || !window.isSecureContext){
+    // Browsers only allow the mic on HTTPS or localhost — guide instead of hiding.
+    const msg = !SR
+      ? 'Voice input needs Chrome or Edge (Web Speech API).'
+      : 'Browsers allow the mic only on HTTPS — open https://'+location.hostname+'.sslip.io (or localhost).';
+    btn.style.opacity = langBtn.style.opacity = .55;
+    btn.title = langBtn.title = msg;
+    btn.onclick = langBtn.onclick = ()=> toast('🎤 ' + msg);
+    return;
+  }
   state.voiceLang = state.voiceLang || 'hi-IN';
   langBtn.onclick = ()=>{
     state.voiceLang = state.voiceLang==='hi-IN' ? 'en-IN' : 'hi-IN';
