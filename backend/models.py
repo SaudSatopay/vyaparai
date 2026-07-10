@@ -68,6 +68,7 @@ class Quote(BaseModel):
     grand_total: float = 0
     status: Status = Status.DRAFT
     detected_language: Optional[str] = None
+    revision: int = 1
     agent_trace: list[dict] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 
@@ -82,4 +83,6 @@ class Invoice(BaseModel):
     qr_jws: Optional[str] = None    # signed QR payload (compact JWS)
     inv01: Optional[dict] = None    # full NIC INV-01 v1.1 registration payload
     signed_by: Optional[str] = None
+    paid: bool = False
+    paid_at: Optional[str] = None
     status: Status = Status.DRAFT

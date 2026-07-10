@@ -94,6 +94,11 @@ The agent noticed the catalog's fuzzy match was wrong, **reached for its HSN-cla
 | 🧾 **Standards-real e-invoicing** | NIC **INV-01 v1.1** payload, **IRN** per the NIC SHA-256 algorithm, **JWS-signed QR**, printable tax invoice with amount-in-words |
 | ✅ **Click-to-verify QR** | Click the QR → expands to phone-scannable size and **verifies its JWS signature in-app** |
 | 💳 **UPI scan-to-pay** | Every invoice ships a UPI QR — GPay/PhonePe opens with the amount pre-filled |
+| 🔁 **"Ask for changes"** | Owner revises in natural language — *"bulb 40 kar do, fan hata do, 2 geyser add karo"* — the agent rewrites the quote (rev 2, trace logged) |
+| 💰 **Quote-to-CASH closure** | Mark paid on UPI receipt — PAID stamp + collections update |
+| 📒 **Live ledger strip** | Quotes · invoices · pending · **collected ₹ · GST ₹** · recent invoices with paid/due status |
+| 🗺️ **IGST toggle** | Flip to inter-state and quotes switch from CGST+SGST to IGST |
+| 📢 **Voice read-back** | 🔊 reads the quote aloud in Hindi — *"Kul rakam 21,870 rupaye…"* |
 | 🪂 **Graceful degradation** | Model or key down? A heuristic parser keeps quotes flowing |
 | 👀 **Transparent reasoning** | The full tool-call trace renders in the review UI |
 
@@ -184,6 +189,7 @@ curl -X POST localhost:8000/inquiry -H "content-type: application/json" \
 - [x] E-invoice layer: NIC INV-01 v1.1 · IRN (NIC SHA-256) · JWS-signed scannable QR · printable invoice
 - [x] Alibaba Cloud deploy kit
 - [x] Wow pass: voice orders (`hi-IN`), UPI scan-to-pay QR, click-to-verify e-invoice QR, stock alerts, 33-item catalog
+- [x] Stacked pass: natural-language quote revision ("Ask for changes"), mark-paid + live ledger, IGST toggle, Hindi voice read-back
 - [ ] Live IRP registration (GSTIN-gated credentials) — drop-in seam ready in `einvoice.register_invoice()`
 - [ ] WhatsApp Cloud API as a production channel
 - [ ] Ledger/ERP sync · payment reconciliation

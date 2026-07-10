@@ -198,6 +198,19 @@
   .micbtn.rec{background:#d5382f;border-color:#d5382f;color:#fff;animation:pulse 1.1s infinite}
   @keyframes pulse{0%{box-shadow:0 0 0 0 #d5382f55}70%{box-shadow:0 0 0 13px #d5382f00}100%{box-shadow:0 0 0 0 #d5382f00}}
 
+  /* ledger stats strip */
+  .statsbar{display:flex;flex-wrap:wrap;gap:8px;margin:-6px 0 18px;align-items:center;animation:rise .4s both}
+  .sp{font-size:12px;font-weight:700;padding:7px 12px;border-radius:100px;background:var(--card);border:1px solid var(--line)}
+  .sp b{color:var(--saffron-deep)}
+  .sp .ok{color:var(--emerald);font-weight:800} .sp .due{color:var(--amber);font-weight:800}
+
+  /* revise textarea */
+  .revta{width:100%;min-height:92px;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;
+    font-family:var(--font-ui);font-size:13.5px;background:#fff;resize:vertical;outline:none;box-sizing:border-box}
+  .revta:focus{border-color:var(--saffron)}
+
+  .stamp.paid2{left:auto;right:26px;top:auto;bottom:14px;transform:rotate(7deg);animation:none}
+
   /* QR modal */
   #qrModal{position:fixed;inset:0;background:#2b210fb0;backdrop-filter:blur(5px);z-index:60;
     display:none;align-items:center;justify-content:center;padding:20px}
@@ -233,9 +246,11 @@
       </div>
     </div>
     <div class="spacer"></div>
+    <button class="ghostbtn" id="taxToggle" title="Toggle place of supply (CGST+SGST vs IGST)">🗺️ Intra-state</button>
     <span class="pill" id="apiPill"><span class="dot" id="apiDot"></span><span id="apiTxt">connecting…</span></span>
     <button class="ghostbtn" id="replay">↻ Replay demo</button>
   </header>
+  <div id="statsBar" class="statsbar hidden"></div>
 
   <div class="stage">
     <!-- WhatsApp -->
@@ -362,6 +377,8 @@ function renderQuote(q){
       <span class="chip nlu ${heur?'heur':''}">${heur?'⚙ Heuristic NLU':'✦ Qwen NLU'}</span>
       <span class="chip">Quote <b>${q.quote_id}</b></span>
       <span class="chip">${inter?'Inter-state · IGST':'Intra-state · CGST+SGST'}</span>
+      ${(q.revision||1)>1?`<span class="chip" style="background:#fbe9d8;border-color:#f0cfae;color:var(--saffron-deep)">🔁 revision ${q.revision}</span>`:''}
+      <button class="chip" id="speakBtn" style="cursor:pointer" title="सुनिए — hear this quote">🔊</button>
     </div>
     ${traceHtml}
     <div class="rawq">Agent produced <b>${q.lines.length}</b> line item(s) — catalog matches + AI-classified HSN:</div>
@@ -380,9 +397,79 @@ function renderQuote(q){
       <button class="btn ghost" id="editBtn">Ask for changes</button>
     </div>`;
   qs('#quoteCard').classList.remove('hidden'); qs('#quoteCard').classList.add('rise');
+  qs('#qStatus').className='status pend'; qs('#qStatus').textContent='● Pending approval';
   qs('#qStatus').classList.remove('hidden');
   qs('#approveBtn').onclick = approve;
-  qs('#editBtn').onclick = ()=> toast('Clarification round-trip — coming in the live-Qwen build');
+  qs('#editBtn').onclick = openReviseModal;
+  qs('#speakBtn').onclick = ()=> speakQuote(q);
+}
+
+/* ---- 🔊 read the quote aloud (hi-IN) ---- */
+function speakQuote(q){
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(
+      `Quote taiyaar hai. ${q.lines.length} item. Kul rakam ${Math.round(q.grand_total)} rupaye. Approval ka intezaar hai.`);
+    u.lang = 'hi-IN'; u.rate = 0.95;
+    speechSynthesis.speak(u);
+  }catch(e){ toast('Speech not available in this browser'); }
+}
+
+/* ---- "Ask for changes": natural-language quote revision by the agent ---- */
+function openReviseModal(){
+  if(!state.quoteId) return;
+  const m=qs('#qrModal'), c=qs('#qmContent'); m.classList.add('open');
+  c.innerHTML = `<h3 class="qm-title">Ask the agent for changes</h3>
+    <div class="qm-sub">Say it like you'd tell your munim — English / हिंदी / Hinglish.</div>
+    <textarea id="revText" class="revta" placeholder="e.g. bulb 40 kar do · 10% discount de do · AC hata do · 2 geyser add karo"></textarea>
+    <div class="actions" style="margin-top:12px">
+      <button class="btn primary" id="revGo">🔁 Revise quote</button>
+      <button class="btn ghost" onclick="closeQrModal()">Cancel</button>
+    </div>`;
+  qs('#revGo').onclick = doRevise;
+  qs('#revText').addEventListener('keydown', e=>{ if(e.key==='Enter' && (e.ctrlKey||e.metaKey)) doRevise(); });
+  setTimeout(()=>qs('#revText').focus(), 60);
+}
+async function doRevise(){
+  const t = qs('#revText').value.trim(); if(!t) return;
+  const btn = qs('#revGo'); btn.disabled=true; btn.textContent='Agent revising…';
+  try{
+    const q = await api('/revise/'+state.quoteId, {instruction: t});
+    closeQrModal(); renderQuote(q); refreshStats();
+    const last = (q.agent_trace||[]).slice(-1)[0];
+    bubble('out','🔁 Quote revised — '+escapeHtml(last?String(last.output):'updated')+' New total <b>'+INR.format(q.grand_total)+'</b>.');
+    toast('Quote revised → rev '+(q.revision||2));
+  }catch(e){ toast('Error: '+e.message); btn.disabled=false; btn.textContent='🔁 Revise quote'; }
+}
+
+/* ---- ledger stats strip ---- */
+async function refreshStats(){
+  try{
+    const s = await (await fetch('/stats')).json();
+    const bar = qs('#statsBar');
+    if(!s.quotes && !s.invoices){ bar.classList.add('hidden'); return; }
+    const rec = (s.recent||[]).map(r=>
+      `<span class="sp">${r.id} · ${INR.format(r.total)} <span class="${r.paid?'ok':'due'}">${r.paid?'✓ paid':'● due'}</span></span>`).join('');
+    bar.innerHTML = `<span class="sp">📋 Quotes <b>${s.quotes}</b></span>
+      <span class="sp">🧾 Invoices <b>${s.invoices}</b></span>
+      <span class="sp">⏳ Pending <b>${s.pending}</b></span>
+      <span class="sp">💰 Collected <b>${INR.format(s.collected)}</b></span>
+      <span class="sp">🏛️ GST <b>${INR.format(s.gst_collected)}</b></span>${rec}`;
+    bar.classList.remove('hidden');
+  }catch(e){}
+}
+
+/* ---- 💰 mark paid: quote-to-CASH closure ---- */
+async function markPaid(){
+  const btn = qs('#paidBtn'); if(btn){btn.disabled=true; btn.textContent='Recording…';}
+  try{
+    const r = await api('/paid/'+state.invoiceNo);
+    if(btn){btn.textContent='Paid ✓'; btn.classList.remove('primary'); btn.classList.add('ghost');}
+    const st=document.createElement('div'); st.className='stamp paid2'; st.textContent='PAID';
+    qs('#invoiceBody').appendChild(st);
+    bubble('out','🙏 Payment received — <b>'+INR.format(r.amount)+'</b>. Dhanyavaad!');
+    toast('Recorded as paid'); refreshStats();
+  }catch(e){ toast('Error: '+e.message); if(btn){btn.disabled=false; btn.textContent='💰 Mark paid (UPI)';} }
 }
 
 function renderInvoice(inv){
@@ -399,6 +486,7 @@ function renderInvoice(inv){
         <div><div class="k">Grand total</div><div class="v" style="color:var(--emerald)">${INR.format(q.grand_total)}</div></div>
         <div class="actions" style="margin-top:2px">
           <button class="btn go" id="sendBtn">Send on WhatsApp</button>
+          <button class="btn primary" id="paidBtn">💰 Mark paid (UPI)</button>
           <button class="btn ghost" onclick="window.open('/invoice/${inv.invoice_no}','_blank')">🧾 View invoice</button>
           <button class="btn ghost" onclick="window.open('/invoice/${inv.invoice_no}/inv01.json','_blank')">INV-01 JSON</button>
         </div>
@@ -420,6 +508,7 @@ function renderInvoice(inv){
   qs('#qStatus').className='status appr'; qs('#qStatus').textContent='✓ Approved';
   qs('#invoiceBody').scrollIntoView({behavior:'smooth', block:'nearest'});
   qs('#sendBtn').onclick = sendInvoice;
+  qs('#paidBtn').onclick = markPaid;
 }
 
 async function processInquiry(text){
@@ -428,9 +517,9 @@ async function processInquiry(text){
   typing(true);
   try{
     await new Promise(r=>setTimeout(r,850));
-    const q = await api('/inquiry', {text, intra_state:true, customer_name:'Sharma Electricals'});
+    const q = await api('/inquiry', {text, intra_state:!state.inter, customer_name:'Sharma Electricals'});
     typing(false);
-    renderQuote(q);
+    renderQuote(q); refreshStats();
     bubble('out','Got it 🙏 Drafted a quote for <b>'+q.lines.length+'</b> item(s), total <b>'+INR.format(q.grand_total)+'</b>. Sending after owner approval →');
   }catch(e){ typing(false); toast('Error: '+e.message); }
   finally{ state.busy=false; }
@@ -440,7 +529,7 @@ async function approve(){
   try{
     const inv = await api('/approve/'+state.quoteId);
     if(btn){btn.textContent='✓ Approved'; btn.classList.remove('primary'); btn.classList.add('ghost');}
-    renderInvoice(inv); toast('E-invoice '+inv.invoice_no+' generated');
+    renderInvoice(inv); refreshStats(); toast('E-invoice '+inv.invoice_no+' generated');
   }catch(e){ toast('Error: '+e.message); if(btn){btn.disabled=false; btn.textContent='✓ Approve & generate e-invoice';} }
 }
 async function sendInvoice(){
@@ -510,7 +599,7 @@ async function health(){
   catch{ qs('#apiDot').className='dot off'; qs('#apiTxt').textContent='API offline'; }
 }
 function runDemo(){
-  qs('#chat').innerHTML=''; state={quoteId:null,invoiceNo:null,busy:false};
+  qs('#chat').innerHTML=''; state={quoteId:null,invoiceNo:null,busy:false,inter:state.inter||false};
   qs('#quoteBody').innerHTML='<div class="empty"><div class="big">Reading the customer\'s message…</div>The agent is parsing the WhatsApp inquiry.</div>';
   qs('#invoiceCard').classList.add('hidden'); qs('#qStatus').classList.add('hidden');
   setTimeout(()=>processInquiry(DEMO), 500);
@@ -519,7 +608,12 @@ function runDemo(){
 qs('#chatSend').onclick = ()=>{ const v=qs('#chatInput').value.trim(); if(v){ qs('#chatInput').value=''; processInquiry(v); } };
 qs('#chatInput').addEventListener('keydown', e=>{ if(e.key==='Enter') qs('#chatSend').click(); });
 qs('#replay').onclick = runDemo;
-health(); runDemo();
+qs('#taxToggle').onclick = ()=>{
+  state.inter = !state.inter;
+  qs('#taxToggle').textContent = state.inter ? '🗺️ Inter-state · IGST' : '🗺️ Intra-state';
+  toast(state.inter ? 'Next quotes: inter-state — IGST applies' : 'Next quotes: intra-state — CGST + SGST split');
+};
+health(); runDemo(); refreshStats();
 </script>
 </body>
 </html>

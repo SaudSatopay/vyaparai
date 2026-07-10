@@ -69,6 +69,30 @@ class QuoteToCashAgent:
             quote.status = Status.NEEDS_INFO
         return quote
 
+    def revise(self, quote: Quote, instruction: str) -> Quote:
+        """Owner's natural-language change request -> agent revises the draft quote."""
+        if not self.qwen.api_key:
+            quote.notes.append("Revision needs live Qwen (set QWEN_API_KEY).")
+            return quote
+        try:
+            from backend.agent.revise import revise_lines
+
+            lines, summary, notes = revise_lines(self.qwen, quote, instruction)
+        except Exception as e:  # never lose the working quote
+            quote.notes.append(f"Revision failed ({type(e).__name__}) — quote unchanged.")
+            return quote
+        new_q = tools.quote_from_lines(
+            quote.quote_id, lines, quote.intra_state,
+            quote.customer_name, quote.customer_gstin,
+        )
+        new_q.detected_language = quote.detected_language
+        new_q.revision = (quote.revision or 1) + 1
+        new_q.agent_trace = list(quote.agent_trace or []) + [
+            {"tool": "revise_quote", "input": instruction, "output": summary}
+        ]
+        new_q.notes.extend(notes)
+        return new_q
+
     def approve_and_invoice(self, quote: Quote) -> Invoice:
         """Called after a human approves the quote."""
         quote.status = Status.APPROVED

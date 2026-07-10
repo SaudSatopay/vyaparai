@@ -19,7 +19,7 @@ from pydantic import BaseModel  # noqa: E402
 
 from backend.agent.orchestrator import QuoteToCashAgent  # noqa: E402
 from backend.invoice_page import render_invoice_html  # noqa: E402
-from backend.models import Invoice, Quote  # noqa: E402
+from backend.models import Invoice, Quote, Status  # noqa: E402
 
 app = FastAPI(title="VyaparAI - Quote-to-Cash Autopilot", version="0.1.0")
 agent = QuoteToCashAgent()
@@ -35,6 +35,10 @@ class InquiryIn(BaseModel):
     text: str
     intra_state: bool = True
     customer_name: str | None = None
+
+
+class ReviseIn(BaseModel):
+    instruction: str
 
 
 @app.get("/health")
@@ -54,6 +58,17 @@ def inquiry(body: InquiryIn):
     q = agent.draft_quote(body.text, body.intra_state, body.customer_name)
     _QUOTES[q.quote_id] = q
     return q
+
+
+@app.post("/revise/{quote_id}", response_model=Quote)
+def revise(quote_id: str, body: ReviseIn):
+    """Owner's change request ("bulb 40 kar do, 10% discount") -> revised quote."""
+    q = _QUOTES.get(quote_id)
+    if not q:
+        raise HTTPException(404, "quote not found")
+    new_q = agent.revise(q, body.instruction)
+    _QUOTES[quote_id] = new_q
+    return new_q
 
 
 @app.post("/approve/{quote_id}", response_model=Invoice)
@@ -81,6 +96,37 @@ def _get_invoice(invoice_no: str) -> Invoice:
     if not inv:
         raise HTTPException(404, "invoice not found")
     return inv
+
+
+@app.post("/paid/{invoice_no}")
+def mark_paid(invoice_no: str):
+    """Close the loop: record the UPI payment against the invoice."""
+    from datetime import datetime
+
+    inv = _get_invoice(invoice_no)
+    inv.paid = True
+    inv.paid_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return {"ok": True, "invoice_no": invoice_no, "amount": inv.quote.grand_total}
+
+
+@app.get("/stats")
+def stats():
+    """Business pulse for the ledger strip: counts, collections, GST, recents."""
+    invs = list(_INVOICES.values())
+    paid = [i for i in invs if i.paid]
+    return {
+        "quotes": len(_QUOTES),
+        "invoices": len(invs),
+        "pending": sum(1 for q in _QUOTES.values() if q.status == Status.PENDING_APPROVAL),
+        "collected": round(sum(i.quote.grand_total for i in paid), 2),
+        "gst_collected": round(
+            sum(i.quote.total_cgst + i.quote.total_sgst + i.quote.total_igst for i in paid), 2
+        ),
+        "recent": [
+            {"id": i.invoice_no, "total": i.quote.grand_total, "paid": i.paid}
+            for i in invs
+        ][-6:][::-1],
+    }
 
 
 @app.get("/invoice/{invoice_no}", response_class=HTMLResponse)
