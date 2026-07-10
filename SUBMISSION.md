@@ -78,7 +78,7 @@ quote. The full tool-call trace is shown live in the UI.
 `FastAPI` · `Pydantic` · `OpenAI SDK` · `HTML/CSS/JS`
 
 ## Links (fill in)
-- **Live demo:** {DEPLOYED_URL}
+- **Live demo:** http://47.84.111.3:8000 (Alibaba Cloud ECS, Singapore — `ecs.e-c1m1.large`, Ubuntu 22.04, systemd service)
 - **Repository:** {REPO_URL}
 - **Video (≈3 min):** {VIDEO_URL}
 - **Track:** Autopilot Agent

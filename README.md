@@ -13,6 +13,9 @@
 [![Alibaba Cloud](https://img.shields.io/badge/Deployed_on-Alibaba_Cloud-FF6A00?style=flat-square&logo=alibabacloud&logoColor=white)](DEPLOY.md)
 [![Track](https://img.shields.io/badge/Hackathon_Track-Autopilot_Agent-DC6B18?style=flat-square)](https://qwencloud-hackathon.devpost.com/)
 
+### ⚡ [Try it live → `47.84.111.3:8000`](http://47.84.111.3:8000)
+*Running on Alibaba Cloud ECS (Singapore) · reasoning by `qwen-plus` on Qwen Cloud*
+
 <br>
 
 <img src="docs/screenshot.png" alt="VyaparAI — a Hinglish WhatsApp inquiry becoming a GST quote, with the Qwen agent's tool-calling trace visible" width="900">
@@ -145,9 +148,9 @@ curl -X POST localhost:8000/inquiry -H "content-type: application/json" \
 | `GET /health` | Liveness + whether live Qwen NLU is active |
 | `GET /` | The WhatsApp-style human-in-the-loop review UI |
 
-## ☁️ Deploying on Alibaba Cloud
+## ☁️ Deployed on Alibaba Cloud
 
-Reasoning runs on **Qwen Cloud** (`qwen-plus`, OpenAI-compatible endpoint); the service deploys to **Alibaba Cloud** either way you like — see **[DEPLOY.md](DEPLOY.md)** for both step-by-step paths:
+**Live now at [47.84.111.3:8000](http://47.84.111.3:8000)** — ECS `ecs.e-c1m1.large` (Singapore), Ubuntu 22.04, running as a systemd service ([proof screenshot](docs/live-deployment.png)). Reasoning runs on **Qwen Cloud** (`qwen-plus`, OpenAI-compatible endpoint). To reproduce, **[DEPLOY.md](DEPLOY.md)** has both step-by-step paths:
 
 - **Function Compute** (serverless, container image, scales to zero), or
 - **ECS** (one small VM + the provided [`systemd` unit](deploy/vyapar.service))
