@@ -89,7 +89,7 @@ The agent noticed the catalog's fuzzy match was wrong, **reached for its HSN-cla
 | 🏷️ **Off-catalog HSN classification** | Items you don't stock get a correct HSN + GST rate from the model |
 | 🧮 **GST-correct math** | 33-item demo catalog spanning **all four GST bands (5/12/18/28%)**, intra-state CGST+SGST or inter-state IGST |
 | 📦 **Stock-aware** | Over-asks get flagged before approval — *"asked 500 pcs, only 420 in stock"* |
-| ❓ **Clarifying questions** | Ambiguity (specs, brand, delivery) becomes non-blocking questions, not guesses |
+| ❓ **Two-way clarification loop** | *"मुझे बल्ब चाहिए"* → agent asks *"कितने LED बल्ब (9W) चाहिए?"* in chat → customer replies *"50"* → the follow-up resolves via conversation memory into a real quote. Empty quotes can't be approved |
 | 👤 **Human-in-the-loop** | The owner approves every quote before the e-invoice exists |
 | 🧾 **Standards-real e-invoicing** | NIC **INV-01 v1.1** payload, **IRN** per the NIC SHA-256 algorithm, **JWS-signed QR**, printable tax invoice with amount-in-words |
 | ✅ **Click-to-verify QR** | Click the QR → expands to phone-scannable size and **verifies its JWS signature in-app** |
@@ -193,7 +193,7 @@ curl -X POST localhost:8000/inquiry -H "content-type: application/json" \
 - [ ] Live IRP registration (GSTIN-gated credentials) — drop-in seam ready in `einvoice.register_invoice()`
 - [ ] WhatsApp Cloud API as a production channel
 - [ ] Ledger/ERP sync · payment reconciliation
-- [ ] Two-way clarification loop with the customer
+- [x] Two-way clarification loop with conversation memory (bare-number follow-ups resolve against the agent's question)
 
 ## ⚖️ Note
 

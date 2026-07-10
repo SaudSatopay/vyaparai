@@ -22,11 +22,12 @@ class QuoteToCashAgent:
         return f"{prefix}-{self._seq}"
 
     def draft_quote(self, raw_text: str, intra_state: bool = True,
-                    customer_name: str | None = None) -> Quote:
+                    customer_name: str | None = None,
+                    history: list[str] | None = None) -> Quote:
         # Primary path: a genuine Qwen tool-calling agent.
         if self.qwen.api_key:
             try:
-                return self._agentic_quote(raw_text, intra_state, customer_name)
+                return self._agentic_quote(raw_text, intra_state, customer_name, history)
             except Exception as e:
                 # Never fail the request: fall back to the deterministic pipeline.
                 quote = self._deterministic_quote(raw_text, intra_state)
@@ -40,8 +41,11 @@ class QuoteToCashAgent:
         return quote
 
     def _agentic_quote(self, raw_text: str, intra_state: bool,
-                       customer_name: str | None = None) -> Quote:
-        working, clarifications, intra, trace = run_agent(raw_text, self.qwen, intra_state)
+                       customer_name: str | None = None,
+                       history: list[str] | None = None) -> Quote:
+        working, clarifications, intra, trace = run_agent(
+            raw_text, self.qwen, intra_state, history=history
+        )
         quote = tools.quote_from_lines(
             self._next_id("Q"), working, intra, customer_name=customer_name
         )

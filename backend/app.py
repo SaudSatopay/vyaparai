@@ -35,6 +35,7 @@ class InquiryIn(BaseModel):
     text: str
     intra_state: bool = True
     customer_name: str | None = None
+    history: list[str] | None = None  # rolling chat context for follow-ups
 
 
 class ReviseIn(BaseModel):
@@ -55,7 +56,7 @@ def index():
 @app.post("/inquiry", response_model=Quote)
 def inquiry(body: InquiryIn):
     """Step 1: customer inquiry -> draft quote (pending human approval)."""
-    q = agent.draft_quote(body.text, body.intra_state, body.customer_name)
+    q = agent.draft_quote(body.text, body.intra_state, body.customer_name, body.history)
     _QUOTES[q.quote_id] = q
     return q
 
@@ -77,6 +78,8 @@ def approve(quote_id: str):
     q = _QUOTES.get(quote_id)
     if not q:
         raise HTTPException(404, "quote not found")
+    if not q.lines:
+        raise HTTPException(400, "quote has no line items — answer the agent's question first")
     inv = agent.approve_and_invoice(q)
     _INVOICES[inv.invoice_no] = inv
     return inv

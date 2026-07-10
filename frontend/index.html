@@ -320,7 +320,7 @@ const LANG = {en:'English', hi:'हिन्दी', hinglish:'Hinglish', other:
 const TOOL_ICON = {search_catalog:'🔍', classify_hsn:'🏷️', add_line_item:'➕', request_clarification:'❓', finalize_quote:'✅'};
 const DEMO = "bhai 50 LED bulb 9W aur 10 ceiling fan ka quote bhej do";
 const qs = s => document.querySelector(s);
-let state = {quoteId:null, invoiceNo:null, busy:false};
+let state = {quoteId:null, invoiceNo:null, busy:false, history:[]};
 
 function toast(msg){ const t=qs('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600); }
 async function api(path, body){
@@ -395,16 +395,17 @@ function renderQuote(q){
       <div class="grand"><span>Grand total</span><b>${INR.format(q.grand_total)}</b></div>
     </div>
     ${noteHtml?`<div class="notes">${noteHtml}</div>`:''}
-    <div class="actions">
+    ${q.lines.length ? `<div class="actions">
       <button class="btn primary" id="approveBtn">✓ Approve &amp; generate e-invoice</button>
       <button class="btn ghost" id="editBtn">Ask for changes</button>
-    </div>`;
+    </div>` : `<div class="actions"><span class="chip" style="background:var(--amber-soft);border-color:#ecd9a8;color:var(--amber);font-size:12.5px">💬 Waiting for the customer's answer in chat — no quote to approve yet</span></div>`}`;
   state.lastLang = q.detected_language;
   qs('#quoteCard').classList.remove('hidden'); qs('#quoteCard').classList.add('rise');
-  qs('#qStatus').className='status pend'; qs('#qStatus').textContent='● Pending approval';
+  qs('#qStatus').className='status pend';
+  qs('#qStatus').textContent = q.lines.length ? '● Pending approval' : '❓ Needs info';
   qs('#qStatus').classList.remove('hidden');
-  qs('#approveBtn').onclick = approve;
-  qs('#editBtn').onclick = openReviseModal;
+  const ab=qs('#approveBtn'); if(ab) ab.onclick = approve;
+  const eb=qs('#editBtn'); if(eb) eb.onclick = openReviseModal;
   qs('#speakBtn').onclick = ()=> speakQuote(q);
 }
 
@@ -526,10 +527,19 @@ async function processInquiry(text){
   qs('#quoteBody').innerHTML = '<div class="empty"><div class="big">🧠 Agent at work…</div>Qwen is parsing the message, matching your catalog, and computing GST.</div>';
   try{
     await new Promise(r=>setTimeout(r,850));
-    const q = await api('/inquiry', {text, intra_state:!state.inter, customer_name:'Sharma Electricals'});
+    const q = await api('/inquiry', {text, intra_state:!state.inter, customer_name:'Sharma Electricals', history: state.history.slice(-6)});
     typing(false);
+    state.history.push('customer: '+text);
     renderQuote(q); refreshStats();
-    bubble('out','Got it 🙏 Drafted a quote for <b>'+q.lines.length+'</b> item(s), total <b>'+INR.format(q.grand_total)+'</b>. Sending after owner approval →');
+    if(!q.lines.length){
+      const qn = (q.notes||[]).find(n=>!/Heuristic offline|Qwen parse fallback|Agent loop fell back/.test(n))
+                 || 'कितने चाहिए? / How many do you need?';
+      bubble('out','🙋 '+escapeHtml(qn));
+      state.history.push('agent asked: '+qn);
+    }else{
+      bubble('out','Got it 🙏 Drafted a quote for <b>'+q.lines.length+'</b> item(s), total <b>'+INR.format(q.grand_total)+'</b>. Sending after owner approval →');
+      state.history.push('agent quoted '+q.lines.length+' item(s), total Rs '+q.grand_total);
+    }
   }catch(e){ typing(false); toast('Error: '+e.message); }
   finally{ state.busy=false; }
 }
@@ -629,7 +639,7 @@ async function health(){
 }
 function runDemo(){
   qs('#chat').innerHTML='';
-  state={quoteId:null,invoiceNo:null,busy:false,inter:state.inter||false,voiceLang:state.voiceLang||'hi-IN'};
+  state={quoteId:null,invoiceNo:null,busy:false,inter:state.inter||false,voiceLang:state.voiceLang||'hi-IN',history:[]};
   qs('#quoteBody').innerHTML='<div class="empty"><div class="big">Reading the customer\'s message…</div>The agent is parsing the WhatsApp inquiry.</div>';
   qs('#invoiceCard').classList.add('hidden'); qs('#qStatus').classList.add('hidden');
   setTimeout(()=>processInquiry(DEMO), 500);

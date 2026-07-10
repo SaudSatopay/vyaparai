@@ -24,7 +24,15 @@ _AGENT_SYSTEM = (
     "request_clarification asking for the target price/budget.\n"
     "4. Call request_clarification for anything genuinely ambiguous (spec, brand, "
     "delivery) without blocking the quote.\n"
-    "5. When every item is handled, call finalize_quote.\n"
+    "5. If an item's QUANTITY is missing or unclear, do NOT add_line_item for it — "
+    "call request_clarification asking how many, phrased in the customer's language.\n"
+    "6. Ask questions ONLY via request_clarification, never as plain text, and ask "
+    "each question at most once.\n"
+    "7. When every item is handled — or once you have asked for whatever is missing — "
+    "call finalize_quote to end your turn (even with zero items added).\n"
+    "The user message may include '(Conversation so far: ...)'. Use it to resolve "
+    "follow-ups — e.g. a bare '50' answers your earlier quantity question about the "
+    "item under discussion, so add_line_item for that item with qty 50.\n"
     "Use the catalog's real numbers. Never invent a price for a catalog item."
 )
 
@@ -102,9 +110,11 @@ def _dispatch(name, args, working, clarifications, finalized, qwen, trace):
         return {"ok": True, "lines_so_far": len(working)}
     if name == "request_clarification":
         q = args.get("question", "")
-        clarifications.append(q)
-        trace.append({"tool": "request_clarification", "input": "", "output": q})
-        return {"ok": True}
+        if q and q not in clarifications:
+            clarifications.append(q)
+            trace.append({"tool": "request_clarification", "input": "", "output": q})
+            return {"ok": True}
+        return {"ok": True, "note": "already asked — do not repeat; call finalize_quote"}
     if name == "finalize_quote":
         finalized["done"] = True
         if isinstance(args.get("intra_state"), bool):
@@ -115,14 +125,18 @@ def _dispatch(name, args, working, clarifications, finalized, qwen, trace):
     return {"error": f"unknown tool {name}"}
 
 
-def run_agent(raw_text, qwen, intra_state=True, max_steps=8):
+def run_agent(raw_text, qwen, intra_state=True, max_steps=8, history=None):
     """Run the Qwen tool-calling loop. Returns (lines, clarifications, intra_state, trace)."""
     client = qwen._ensure()
     working, clarifications, trace = [], [], []
     finalized = {"done": False, "intra_state": intra_state}
+    user_content = raw_text
+    if history:
+        ctx = "\n".join(str(h) for h in history[-6:])
+        user_content = f"(Conversation so far:\n{ctx}\n)\nCustomer's new message: {raw_text}"
     messages = [
         {"role": "system", "content": _AGENT_SYSTEM},
-        {"role": "user", "content": raw_text},
+        {"role": "user", "content": user_content},
     ]
     for _ in range(max_steps):
         resp = client.chat.completions.create(
@@ -148,4 +162,10 @@ def run_agent(raw_text, qwen, intra_state=True, max_steps=8):
                              "content": json.dumps(result)})
         if finalized["done"]:
             break
+    # Safety net: if the model asked its question as plain text (despite rule 6),
+    # surface it as a clarification instead of silently dropping it.
+    final_text = (msg.content or "").strip() if "msg" in locals() else ""
+    if final_text and not finalized["done"] and not clarifications:
+        clarifications.append(final_text)
+        trace.append({"tool": "request_clarification", "input": "", "output": final_text})
     return working, clarifications, finalized["intra_state"], trace
