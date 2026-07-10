@@ -93,7 +93,7 @@ quote. The full tool-call trace is shown live in the UI.
 `OpenAI SDK` · `segno` · `Web Speech API` · `HTML/CSS/JS`
 
 ## Links
-- **Live demo:** http://47.84.111.3:8000 (Alibaba Cloud ECS, Singapore — `ecs.e-c1m1.large`, Ubuntu 22.04, systemd service)
+- **Live demo:** https://47.84.111.3.sslip.io (Alibaba Cloud ECS, Singapore — `ecs.e-c1m1.large`, Ubuntu 22.04, systemd + Caddy auto-TLS; voice works in-browser)
 - **Repository:** https://github.com/SaudSatopay/vyaparai
 - **Video (≈3 min):** {VIDEO_URL — fill after recording}
 - **Track:** Autopilot Agent

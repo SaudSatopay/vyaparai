@@ -600,15 +600,19 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeQrModal(); }
     return;
   }
   state.voiceLang = state.voiceLang || 'hi-IN';
+  langBtn.title = 'Recognition language: हिंदी — click to switch to English';
   langBtn.onclick = ()=>{
     state.voiceLang = state.voiceLang==='hi-IN' ? 'en-IN' : 'hi-IN';
     langBtn.textContent = state.voiceLang==='hi-IN' ? 'हिं' : 'EN';
-    toast('Voice recognition: '+(state.voiceLang==='hi-IN'?'हिंदी / Hinglish':'English (India)'));
+    langBtn.title = state.voiceLang==='hi-IN'
+      ? 'Recognition language: हिंदी — click to switch to English'
+      : 'Recognition language: English (India) — click to switch to हिंदी';
+    toast('Voice recognition: '+(state.voiceLang==='hi-IN'?'हिंदी (types in Devanagari)':'English (India)'));
   };
   let rec=null, listening=false;
   btn.onclick = ()=>{
     if(listening){ try{rec.stop();}catch(e){} return; }
-    rec = new SR(); rec.lang=state.voiceLang; rec.interimResults=true; rec.maxAlternatives=1;
+    rec = new SR(); rec.lang = state.voiceLang || 'hi-IN'; rec.interimResults=true; rec.maxAlternatives=1;
     rec.onresult = e=>{ let t=''; for(const r of e.results) t+=r[0].transcript; qs('#chatInput').value=t; };
     rec.onerror = e=>{ toast('Mic: '+e.error); };
     rec.onend = ()=>{ listening=false; btn.classList.remove('rec');
@@ -624,7 +628,8 @@ async function health(){
   catch{ qs('#apiDot').className='dot off'; qs('#apiTxt').textContent='API offline'; }
 }
 function runDemo(){
-  qs('#chat').innerHTML=''; state={quoteId:null,invoiceNo:null,busy:false,inter:state.inter||false};
+  qs('#chat').innerHTML='';
+  state={quoteId:null,invoiceNo:null,busy:false,inter:state.inter||false,voiceLang:state.voiceLang||'hi-IN'};
   qs('#quoteBody').innerHTML='<div class="empty"><div class="big">Reading the customer\'s message…</div>The agent is parsing the WhatsApp inquiry.</div>';
   qs('#invoiceCard').classList.add('hidden'); qs('#qStatus').classList.add('hidden');
   setTimeout(()=>processInquiry(DEMO), 500);
