@@ -14,6 +14,7 @@ from backend.models import Inquiry, Invoice, LineItem, ParsedItem, Quote, Status
 
 _CATALOG_PATH = Path(__file__).resolve().parent.parent / "data" / "catalog.json"
 CATALOG: list[dict] = json.loads(_CATALOG_PATH.read_text(encoding="utf-8"))
+_BY_ID: dict[str, dict] = {p["id"]: p for p in CATALOG}
 
 
 def _round2(x: float) -> float:
@@ -74,6 +75,14 @@ def quote_from_lines(
             line.igst = gst_amt
         line.line_total = _round2(taxable + gst_amt)
         q.lines.append(line)
+
+        # Stock awareness: flag over-asks so the owner sees them before approving.
+        prod = _BY_ID.get(line.product_id)
+        if prod is not None and line.qty > float(prod.get("stock", 0)):
+            q.notes.append(
+                f"Stock alert: {line.name} — customer asked {line.qty:g} {line.unit}, "
+                f"only {prod['stock']} in stock."
+            )
 
     q.taxable_total = _round2(sum(l.taxable_value for l in q.lines))
     q.total_cgst = _round2(sum(l.cgst for l in q.lines))

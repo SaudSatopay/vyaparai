@@ -106,3 +106,35 @@ def invoice_qr(invoice_no: str):
 def invoice_inv01(invoice_no: str):
     """The raw NIC INV-01 v1.1 registration payload (what the IRP accepts)."""
     return JSONResponse(_get_invoice(invoice_no).inv01)
+
+
+@app.get("/invoice/{invoice_no}/upi.svg")
+def invoice_upi(invoice_no: str):
+    """Scan-to-pay UPI QR — opens any UPI app with the invoice amount pre-filled."""
+    from urllib.parse import quote as urlquote
+
+    import segno
+
+    from backend.agent.einvoice import seller_details
+
+    inv = _get_invoice(invoice_no)
+    upi = (
+        "upi://pay?pa=vyaparai@upi"
+        f"&pn={urlquote(seller_details()['LglNm'])}"
+        f"&am={inv.quote.grand_total:.2f}&cu=INR&tn={urlquote(invoice_no)}"
+    )
+    buf = io.BytesIO()
+    segno.make(upi, error="m").save(
+        buf, kind="svg", xmldecl=False, scale=4, border=1, dark="#0B5C52", light=None
+    )
+    return Response(buf.getvalue(), media_type="image/svg+xml")
+
+
+@app.get("/invoice/{invoice_no}/verify")
+def invoice_verify(invoice_no: str):
+    """Verify the e-invoice QR's JWS signature and return the decoded payload."""
+    from backend.agent import einvoice
+
+    inv = _get_invoice(invoice_no)
+    payload = einvoice.verify_jws(inv.qr_jws or "")
+    return {"valid": payload is not None, "signed_by": inv.signed_by, "payload": payload}

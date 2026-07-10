@@ -28,7 +28,8 @@ from backend.models import Quote
 SANDBOX_SECRET = os.getenv("EINV_SIGNING_SECRET", "vyaparai-sandbox-secret")
 
 # NIC UQC codes for our catalog units
-_UQC = {"pcs": "PCS", "pack": "PAC", "coil": "ROL", "length": "NOS"}
+_UQC = {"pcs": "PCS", "pack": "PAC", "coil": "ROL", "length": "NOS",
+        "box": "BOX", "bag": "BAG", "set": "SET", "bucket": "PAC"}
 
 
 def seller_details() -> dict:

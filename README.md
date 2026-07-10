@@ -84,12 +84,16 @@ The agent noticed the catalog's fuzzy match was wrong, **reached for its HSN-cla
 |  |  |
 |---|---|
 | 🗣️ **Bilingual by default** | English, Devanagari Hindi, and code-mixed Hinglish — detected and labeled per quote |
+| 🎤 **Voice orders** | Tap the mic and *speak* the order (`hi-IN` speech recognition) — how MSME owners actually work |
 | 🛠️ **Five-tool agent loop** | `search_catalog` · `classify_hsn` · `add_line_item` · `request_clarification` · `finalize_quote` |
 | 🏷️ **Off-catalog HSN classification** | Items you don't stock get a correct HSN + GST rate from the model |
-| 🧮 **GST-correct math** | Per-item HSN, 12%/18%/5% rates, intra-state CGST+SGST or inter-state IGST |
+| 🧮 **GST-correct math** | 33-item demo catalog spanning **all four GST bands (5/12/18/28%)**, intra-state CGST+SGST or inter-state IGST |
+| 📦 **Stock-aware** | Over-asks get flagged before approval — *"asked 500 pcs, only 420 in stock"* |
 | ❓ **Clarifying questions** | Ambiguity (specs, brand, delivery) becomes non-blocking questions, not guesses |
 | 👤 **Human-in-the-loop** | The owner approves every quote before the e-invoice exists |
-| 🧾 **Standards-real e-invoicing** | NIC **INV-01 v1.1** payload, **IRN** per the NIC SHA-256 algorithm, **JWS-signed scannable QR**, printable tax invoice with amount-in-words |
+| 🧾 **Standards-real e-invoicing** | NIC **INV-01 v1.1** payload, **IRN** per the NIC SHA-256 algorithm, **JWS-signed QR**, printable tax invoice with amount-in-words |
+| ✅ **Click-to-verify QR** | Click the QR → expands to phone-scannable size and **verifies its JWS signature in-app** |
+| 💳 **UPI scan-to-pay** | Every invoice ships a UPI QR — GPay/PhonePe opens with the amount pre-filled |
 | 🪂 **Graceful degradation** | Model or key down? A heuristic parser keeps quotes flowing |
 | 👀 **Transparent reasoning** | The full tool-call trace renders in the review UI |
 
@@ -179,9 +183,10 @@ curl -X POST localhost:8000/inquiry -H "content-type: application/json" \
 - [x] GST engine (CGST/SGST/IGST) · bilingual UI · human-in-the-loop · e-invoice + delivery
 - [x] E-invoice layer: NIC INV-01 v1.1 · IRN (NIC SHA-256) · JWS-signed scannable QR · printable invoice
 - [x] Alibaba Cloud deploy kit
+- [x] Wow pass: voice orders (`hi-IN`), UPI scan-to-pay QR, click-to-verify e-invoice QR, stock alerts, 33-item catalog
 - [ ] Live IRP registration (GSTIN-gated credentials) — drop-in seam ready in `einvoice.register_invoice()`
 - [ ] WhatsApp Cloud API as a production channel
-- [ ] UPI deep-link payments · ledger/ERP sync
+- [ ] Ledger/ERP sync · payment reconciliation
 - [ ] Two-way clarification loop with the customer
 
 ## ⚖️ Note

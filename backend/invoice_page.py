@@ -138,6 +138,13 @@ def render_invoice_html(inv: Invoice) -> str:
   </div>
   <div class="words">{inr_words(q.grand_total)}</div>
 
+  <div class="box" style="margin-top:16px;display:flex;align-items:center;gap:14px">
+    <img src="/invoice/{inv.invoice_no}/upi.svg" alt="UPI payment QR" style="width:92px;height:92px">
+    <div><div class="h">PAY VIA UPI</div>
+      <div style="font-size:12.5px">Scan with GPay / PhonePe / Paytm — amount comes pre-filled.<br>
+      VPA: <b>vyaparai@upi</b> (demo) · Amount: <b>₹{q.grand_total:,.2f}</b></div></div>
+  </div>
+
   <div class="foot">
     <div class="muted">Signed: {inv.signed_by or ''}<br>
     This is a computer-generated e-invoice; the QR carries a JWS-signed payload.</div>
