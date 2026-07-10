@@ -266,7 +266,8 @@
         <div class="wa-body" id="chat"></div>
         <div class="wa-foot">
           <input id="chatInput" placeholder="Type or 🎤 speak — EN / हिंदी / Hinglish">
-          <button id="micBtn" class="micbtn hidden" title="Speak your order (hi-IN)">🎤</button>
+          <button id="micLang" class="micbtn hidden" title="Voice recognition language (click to switch)" style="font-size:11.5px;font-weight:800">हिं</button>
+          <button id="micBtn" class="micbtn hidden" title="Speak your order">🎤</button>
           <button id="chatSend" title="Send">➤</button>
         </div>
       </div>
@@ -396,6 +397,7 @@ function renderQuote(q){
       <button class="btn primary" id="approveBtn">✓ Approve &amp; generate e-invoice</button>
       <button class="btn ghost" id="editBtn">Ask for changes</button>
     </div>`;
+  state.lastLang = q.detected_language;
   qs('#quoteCard').classList.remove('hidden'); qs('#quoteCard').classList.add('rise');
   qs('#qStatus').className='status pend'; qs('#qStatus').textContent='● Pending approval';
   qs('#qStatus').classList.remove('hidden');
@@ -404,13 +406,15 @@ function renderQuote(q){
   qs('#speakBtn').onclick = ()=> speakQuote(q);
 }
 
-/* ---- 🔊 read the quote aloud (hi-IN) ---- */
+/* ---- 🔊 read the quote aloud — follows the quote's detected language ---- */
 function speakQuote(q){
   try{
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(
-      `Quote taiyaar hai. ${q.lines.length} item. Kul rakam ${Math.round(q.grand_total)} rupaye. Approval ka intezaar hai.`);
-    u.lang = 'hi-IN'; u.rate = 0.95;
+    const en = (q.detected_language === 'en');
+    const u = new SpeechSynthesisUtterance(en
+      ? `Quote is ready. ${q.lines.length} ${q.lines.length===1?'item':'items'}. Grand total ${Math.round(q.grand_total)} rupees. Awaiting your approval.`
+      : `Quote taiyaar hai. ${q.lines.length} item. Kul rakam ${Math.round(q.grand_total)} rupaye. Approval ka intezaar hai.`);
+    u.lang = en ? 'en-IN' : 'hi-IN'; u.rate = 0.95;
     speechSynthesis.speak(u);
   }catch(e){ toast('Speech not available in this browser'); }
 }
@@ -421,7 +425,7 @@ function openReviseModal(){
   const m=qs('#qrModal'), c=qs('#qmContent'); m.classList.add('open');
   c.innerHTML = `<h3 class="qm-title">Ask the agent for changes</h3>
     <div class="qm-sub">Say it like you'd tell your munim — English / हिंदी / Hinglish.</div>
-    <textarea id="revText" class="revta" placeholder="e.g. bulb 40 kar do · 10% discount de do · AC hata do · 2 geyser add karo"></textarea>
+    <textarea id="revText" class="revta" placeholder="e.g. make it 40 bulbs · give 10% discount · remove the AC · bulb 40 kar do · 2 geyser add karo"></textarea>
     <div class="actions" style="margin-top:12px">
       <button class="btn primary" id="revGo">🔁 Revise quote</button>
       <button class="btn ghost" onclick="closeQrModal()">Cancel</button>
@@ -467,7 +471,7 @@ async function markPaid(){
     if(btn){btn.textContent='Paid ✓'; btn.classList.remove('primary'); btn.classList.add('ghost');}
     const st=document.createElement('div'); st.className='stamp paid2'; st.textContent='PAID';
     qs('#invoiceBody').appendChild(st);
-    bubble('out','🙏 Payment received — <b>'+INR.format(r.amount)+'</b>. Dhanyavaad!');
+    bubble('out','🙏 Payment received — <b>'+INR.format(r.amount)+'</b>. '+(state.lastLang==='en'?'Thank you!':'Dhanyavaad!'));
     toast('Recorded as paid'); refreshStats();
   }catch(e){ toast('Error: '+e.message); if(btn){btn.disabled=false; btn.textContent='💰 Mark paid (UPI)';} }
 }
@@ -578,18 +582,25 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeQrModal(); }
 /* ---- Voice input: speak the order in Hindi / Hinglish / English ---- */
 (function(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const btn = qs('#micBtn');
+  const btn = qs('#micBtn'), langBtn = qs('#micLang');
   if(!SR || !window.isSecureContext){ return; } // needs Chrome/Edge + HTTPS or localhost
-  btn.classList.remove('hidden');
+  btn.classList.remove('hidden'); langBtn.classList.remove('hidden');
+  state.voiceLang = state.voiceLang || 'hi-IN';
+  langBtn.onclick = ()=>{
+    state.voiceLang = state.voiceLang==='hi-IN' ? 'en-IN' : 'hi-IN';
+    langBtn.textContent = state.voiceLang==='hi-IN' ? 'हिं' : 'EN';
+    toast('Voice recognition: '+(state.voiceLang==='hi-IN'?'हिंदी / Hinglish':'English (India)'));
+  };
   let rec=null, listening=false;
   btn.onclick = ()=>{
     if(listening){ try{rec.stop();}catch(e){} return; }
-    rec = new SR(); rec.lang='hi-IN'; rec.interimResults=true; rec.maxAlternatives=1;
+    rec = new SR(); rec.lang=state.voiceLang; rec.interimResults=true; rec.maxAlternatives=1;
     rec.onresult = e=>{ let t=''; for(const r of e.results) t+=r[0].transcript; qs('#chatInput').value=t; };
     rec.onerror = e=>{ toast('Mic: '+e.error); };
     rec.onend = ()=>{ listening=false; btn.classList.remove('rec');
       const v=qs('#chatInput').value.trim(); if(v){ qs('#chatInput').value=''; processInquiry(v); } };
-    rec.start(); listening=true; btn.classList.add('rec'); toast('Listening… speak your order 🎤');
+    rec.start(); listening=true; btn.classList.add('rec');
+    toast('Listening ('+(state.voiceLang==='hi-IN'?'हिंदी':'English')+')… speak your order 🎤');
   };
 })();
 

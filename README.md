@@ -84,7 +84,7 @@ The agent noticed the catalog's fuzzy match was wrong, **reached for its HSN-cla
 |  |  |
 |---|---|
 | 🗣️ **Bilingual by default** | English, Devanagari Hindi, and code-mixed Hinglish — detected and labeled per quote |
-| 🎤 **Voice orders** | Tap the mic and *speak* the order (`hi-IN` speech recognition) — how MSME owners actually work |
+| 🎤 **Voice orders** | Tap the mic and *speak* the order — Hindi/Hinglish or English (`hi-IN`/`en-IN`, one-tap toggle) |
 | 🛠️ **Five-tool agent loop** | `search_catalog` · `classify_hsn` · `add_line_item` · `request_clarification` · `finalize_quote` |
 | 🏷️ **Off-catalog HSN classification** | Items you don't stock get a correct HSN + GST rate from the model |
 | 🧮 **GST-correct math** | 33-item demo catalog spanning **all four GST bands (5/12/18/28%)**, intra-state CGST+SGST or inter-state IGST |
@@ -98,7 +98,7 @@ The agent noticed the catalog's fuzzy match was wrong, **reached for its HSN-cla
 | 💰 **Quote-to-CASH closure** | Mark paid on UPI receipt — PAID stamp + collections update |
 | 📒 **Live ledger strip** | Quotes · invoices · pending · **collected ₹ · GST ₹** · recent invoices with paid/due status |
 | 🗺️ **IGST toggle** | Flip to inter-state and quotes switch from CGST+SGST to IGST |
-| 📢 **Voice read-back** | 🔊 reads the quote aloud in Hindi — *"Kul rakam 21,870 rupaye…"* |
+| 📢 **Voice read-back** | 🔊 reads the quote aloud in Hindi **or English — auto-follows the inquiry's language** |
 | 🪂 **Graceful degradation** | Model or key down? A heuristic parser keeps quotes flowing |
 | 👀 **Transparent reasoning** | The full tool-call trace renders in the review UI |
 
