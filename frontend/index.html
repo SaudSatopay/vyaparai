@@ -537,7 +537,10 @@ async function processInquiry(text){
       bubble('out','🙋 '+escapeHtml(qn));
       state.history.push('agent asked: '+qn);
     }else{
-      bubble('out','Got it 🙏 Drafted a quote for <b>'+q.lines.length+'</b> item(s), total <b>'+INR.format(q.grand_total)+'</b>. Sending after owner approval →');
+      const hiMode = q.detected_language==='hi' || q.detected_language==='hinglish';
+      bubble('out', hiMode
+        ? 'बन गया 🙏 <b>'+q.lines.length+'</b> आइटम का कोटेशन तैयार, कुल <b>'+INR.format(q.grand_total)+'</b>। मालिक की मंज़ूरी के बाद भेजा जाएगा →'
+        : 'Got it 🙏 Drafted a quote for <b>'+q.lines.length+'</b> item(s), total <b>'+INR.format(q.grand_total)+'</b>. Sending after owner approval →');
       state.history.push('agent quoted '+q.lines.length+' item(s), total Rs '+q.grand_total);
     }
   }catch(e){ typing(false); toast('Error: '+e.message); }

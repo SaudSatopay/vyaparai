@@ -8,7 +8,17 @@ from __future__ import annotations
 from backend.agent import tools
 from backend.agent.agent_loop import run_agent
 from backend.agent.qwen_client import QwenClient, _detect_lang
-from backend.models import Invoice, Quote, Status
+from backend.models import Invoice, Language, Quote, Status
+
+
+def _conversation_lang(raw_text: str, history: list[str] | None) -> Language:
+    """Detect language; short/neutral follow-ups (like '50') inherit the chat's language."""
+    lang = _detect_lang(raw_text)
+    if lang == Language.EN and history and not any(c.isalpha() for c in raw_text):
+        hist_lang = _detect_lang(" ".join(str(h) for h in history))
+        if hist_lang != Language.EN:
+            return hist_lang
+    return lang
 
 
 class QuoteToCashAgent:
@@ -49,7 +59,7 @@ class QuoteToCashAgent:
         quote = tools.quote_from_lines(
             self._next_id("Q"), working, intra, customer_name=customer_name
         )
-        quote.detected_language = _detect_lang(raw_text).value
+        quote.detected_language = _conversation_lang(raw_text, history).value
         quote.agent_trace = trace
         quote.notes.extend(clarifications)
         if not working:

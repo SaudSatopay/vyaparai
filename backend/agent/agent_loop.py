@@ -33,6 +33,9 @@ _AGENT_SYSTEM = (
     "The user message may include '(Conversation so far: ...)'. Use it to resolve "
     "follow-ups — e.g. a bare '50' answers your earlier quantity question about the "
     "item under discussion, so add_line_item for that item with qty 50.\n"
+    "Voice transcripts may write quantities as Hindi number-words — treat these as "
+    "numbers: एक=1 दो=2 तीन=3 चार=4 पांच=5 छह=6 सात=7 आठ=8 नौ/नो=9 दस=10 बीस=20 "
+    "पचास=50 सौ=100. A lone 'नो' answering a quantity question means 9 (नौ), not 'no'.\n"
     "Use the catalog's real numbers. Never invent a price for a catalog item."
 )
 
@@ -104,6 +107,18 @@ def _dispatch(name, args, working, clarifications, finalized, qwen, trace):
             "unit_price": float(args.get("unit_price", 0) or 0),
             "gst_rate": float(args.get("gst_rate", 18) or 18),
         }
+        # Money guard: for catalog items the CATALOG dictates price/HSN/rate —
+        # the model only chooses the item and quantity. Kills price hallucination.
+        prod = tools._BY_ID.get(str(line["product_id"]))
+        if prod is None:
+            nm = str(line["name"]).strip().lower()
+            prod = next((p for p in tools.CATALOG if p["name"].lower() == nm), None)
+        if prod is not None:
+            line.update({
+                "product_id": prod["id"], "name": prod["name"], "hsn": str(prod["hsn"]),
+                "unit": prod.get("unit", line["unit"]),
+                "unit_price": float(prod["unit_price"]), "gst_rate": float(prod["gst_rate"]),
+            })
         working.append(line)
         trace.append({"tool": "add_line_item", "input": f'{line["qty"]:g} x {line["name"]}',
                       "output": f'Rs {line["unit_price"]:g} · {line["gst_rate"]:g}% GST'})
