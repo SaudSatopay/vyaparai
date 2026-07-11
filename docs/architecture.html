@@ -1,0 +1,151 @@
+<!doctype html><html><head><meta charset="utf-8"><title>VyaparAI Architecture</title>
+<style>html,body{margin:0;padding:0}</style></head>
+<body>
+<svg width="1600" height="1060" viewBox="0 0 1600 1060" xmlns="http://www.w3.org/2000/svg"
+     font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#211C15"/></marker>
+    <marker id="as" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#DC6B18"/></marker>
+    <marker id="ag" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#8a8070"/></marker>
+  </defs>
+
+  <rect width="1600" height="1060" fill="#F3ECDD"/>
+  <text x="50" y="58" font-size="30" font-weight="700" fill="#211C15">VyaparAI · Quote-to-Cash Autopilot for Indian MSMEs · System Architecture</text>
+  <text x="50" y="86" font-size="15" fill="#6B6152">Autopilot Agent track · reasoning by qwen-plus on Qwen Cloud · deployed on Alibaba Cloud ECS (Singapore) · github.com/SaudSatopay/vyaparai</text>
+
+  <!-- ========== COLUMN 1 : BROWSER ========== -->
+  <rect x="40" y="120" width="390" height="790" rx="16" fill="#FCF9F2" stroke="#E6DAC4" stroke-width="2"/>
+  <text x="60" y="152" font-size="17" font-weight="700" fill="#0B5C52">CLIENT · Browser (desktop / mobile)</text>
+  <text x="60" y="172" font-size="12" fill="#6B6152">Single-file HTML/CSS/JS · no build step</text>
+
+  <rect x="60" y="190" width="350" height="220" rx="10" fill="#fff" stroke="#E6DAC4"/>
+  <text x="76" y="216" font-size="14" font-weight="700" fill="#211C15">WhatsApp-style customer chat</text>
+  <text x="76" y="240" font-size="12.5" fill="#211C15">• Typed inquiries · English / हिंदी / Hinglish</text>
+  <text x="76" y="261" font-size="12.5" fill="#211C15">• 🎤 Voice input · Web Speech API (hi-IN / en-IN)</text>
+  <text x="76" y="282" font-size="12.5" fill="#211C15">• Agent's clarifying questions appear in chat</text>
+  <text x="76" y="303" font-size="12.5" fill="#211C15">• Rolling conversation memory (last 6 turns)</text>
+  <text x="76" y="324" font-size="12.5" fill="#211C15">• Invoice + UPI pay line delivered back to chat</text>
+  <text x="76" y="345" font-size="12.5" fill="#211C15">• 🔊 Voice read-back follows chat language</text>
+  <text x="76" y="366" font-size="12.5" fill="#211C15">• Hindi number-words understood (नौ = 9)</text>
+
+  <rect x="60" y="430" width="350" height="300" rx="10" fill="#fff" stroke="#E6DAC4"/>
+  <text x="76" y="456" font-size="14" font-weight="700" fill="#211C15">Owner's desk · HUMAN-IN-THE-LOOP</text>
+  <text x="76" y="480" font-size="12.5" fill="#211C15">• GST quote review + live agent reasoning trace</text>
+  <text x="76" y="501" font-size="12.5" fill="#211C15">• "Ask for changes": natural-language revision</text>
+  <text x="76" y="522" font-size="12.5" fill="#211C15">• Stock alerts (asked 500, only 420 in stock)</text>
+  <text x="76" y="543" font-size="12.5" fill="#211C15">• Approve → e-invoice (empty quotes blocked)</text>
+  <text x="76" y="564" font-size="12.5" fill="#211C15">• Click-to-expand QR + in-app JWS verification</text>
+  <text x="76" y="585" font-size="12.5" fill="#211C15">• UPI scan-to-pay QR (amount pre-filled)</text>
+  <text x="76" y="606" font-size="12.5" fill="#211C15">• Mark paid → PAID stamp</text>
+  <text x="76" y="627" font-size="12.5" fill="#211C15">• Live ledger: quotes · invoices · collected ₹ · GST ₹</text>
+  <text x="76" y="648" font-size="12.5" fill="#211C15">• Intra/Inter-state (IGST) toggle</text>
+  <text x="76" y="669" font-size="12.5" fill="#211C15">• Printable tax invoice (browser print → PDF)</text>
+
+  <rect x="60" y="750" width="350" height="130" rx="10" fill="#EEF4FF" stroke="#d5e2fb"/>
+  <text x="76" y="776" font-size="13.5" font-weight="700" fill="#2b53b8">Graceful degradation</text>
+  <text x="76" y="798" font-size="12" fill="#211C15">If Qwen or the key is unavailable, a heuristic</text>
+  <text x="76" y="816" font-size="12" fill="#211C15">EN/HI/Hinglish parser keeps quotes flowing.</text>
+  <text x="76" y="834" font-size="12" fill="#211C15">Voice hides itself on insecure origins and</text>
+  <text x="76" y="852" font-size="12" fill="#211C15">guides the user to the HTTPS link.</text>
+
+  <!-- ========== COLUMN 2 : ALIBABA CLOUD ========== -->
+  <rect x="480" y="120" width="640" height="790" rx="16" fill="#FCF9F2" stroke="#FF6A00" stroke-width="2.5"/>
+  <text x="500" y="152" font-size="17" font-weight="700" fill="#B4530C">ALIBABA CLOUD · ECS ecs.e-c1m1.large · Singapore · Ubuntu 22.04</text>
+
+  <rect x="500" y="170" width="600" height="64" rx="10" fill="#fff" stroke="#E6DAC4"/>
+  <text x="516" y="196" font-size="14" font-weight="700" fill="#211C15">Caddy reverse proxy · auto-TLS (Let's Encrypt)</text>
+  <text x="516" y="216" font-size="12" fill="#6B6152">https://47.84.111.3.sslip.io → localhost:8000 · ports 80/443 · HTTPS enables in-browser voice</text>
+
+  <rect x="500" y="252" width="600" height="96" rx="10" fill="#fff" stroke="#E6DAC4"/>
+  <text x="516" y="278" font-size="14" font-weight="700" fill="#211C15">FastAPI service · uvicorn · systemd unit "vyapar" (Restart=always)</text>
+  <text x="516" y="300" font-size="12" fill="#211C15">POST /inquiry · /revise/{q} · /approve/{q} · /send/{inv} · /paid/{inv}</text>
+  <text x="516" y="320" font-size="12" fill="#211C15">GET / (UI) · /stats · /invoice/{inv} · /invoice/{inv}/qr.svg · /upi.svg · /verify · /inv01.json · /health</text>
+
+  <rect x="500" y="368" width="600" height="170" rx="10" fill="#FBE9D8" stroke="#DC6B18" stroke-width="2"/>
+  <text x="516" y="394" font-size="14" font-weight="700" fill="#B4530C">Agent orchestrator · Qwen function-calling loop (bounded, max 8 steps)</text>
+  <text x="516" y="417" font-size="12.5" fill="#211C15">Tools: search_catalog · classify_hsn · add_line_item · request_clarification · finalize_quote</text>
+  <text x="516" y="438" font-size="12.5" fill="#211C15">• Two-way clarification loop with conversation memory · question dedupe</text>
+  <text x="516" y="459" font-size="12.5" fill="#211C15">• Natural-language revision pass ("bulb 400 kar do aur 10% discount")</text>
+  <text x="516" y="480" font-size="12.5" fill="#211C15">• MONEY GUARD: catalog items snap to catalog price/HSN/rate at the tool</text>
+  <text x="516" y="498" font-size="12.5" fill="#211C15">&#160;&#160;boundary. The model chooses item + qty; it can never invent a price.</text>
+  <text x="516" y="521" font-size="12.5" fill="#211C15">• Full reasoning trace captured and returned to the UI</text>
+
+  <rect x="500" y="558" width="290" height="120" rx="10" fill="#fff" stroke="#E6DAC4"/>
+  <text x="516" y="584" font-size="14" font-weight="700" fill="#211C15">Deterministic GST engine</text>
+  <text x="516" y="606" font-size="12" fill="#211C15">• Taxable value · rounding · totals</text>
+  <text x="516" y="626" font-size="12" fill="#211C15">• Intra-state: CGST + SGST split</text>
+  <text x="516" y="646" font-size="12" fill="#211C15">• Inter-state: IGST</text>
+  <text x="516" y="666" font-size="12" fill="#211C15">• Stock-alert notes per line</text>
+
+  <rect x="810" y="558" width="290" height="120" rx="10" fill="#fff" stroke="#E6DAC4"/>
+  <text x="826" y="584" font-size="14" font-weight="700" fill="#211C15">Catalog (JSON, 33 items)</text>
+  <text x="826" y="606" font-size="12" fill="#211C15">• HSN code + GST rate per item</text>
+  <text x="826" y="626" font-size="12" fill="#211C15">• All four GST bands: 5/12/18/28%</text>
+  <text x="826" y="646" font-size="12" fill="#211C15">• Hindi/Hinglish keywords (pankha, taar)</text>
+  <text x="826" y="666" font-size="12" fill="#211C15">• Stock levels · fuzzy search</text>
+
+  <rect x="500" y="698" width="600" height="150" rx="10" fill="#E4F2EB" stroke="#12805C" stroke-width="2"/>
+  <text x="516" y="724" font-size="14" font-weight="700" fill="#12805C">E-invoice layer (standards-real)</text>
+  <text x="516" y="747" font-size="12.5" fill="#211C15">• NIC INV-01 v1.1 registration payload (downloadable per invoice)</text>
+  <text x="516" y="768" font-size="12.5" fill="#211C15">• IRN: SHA-256 over GSTIN + FY + doc type + doc no (exact NIC algorithm)</text>
+  <text x="516" y="789" font-size="12.5" fill="#211C15">• JWS-signed QR (HS256 sandbox key) + in-app signature verification</text>
+  <text x="516" y="810" font-size="12.5" fill="#211C15">• UPI scan-to-pay QR (segno) · printable invoice with amount-in-words</text>
+  <text x="516" y="831" font-size="12.5" fill="#211C15">• Simulated Ack No/Dt · live IRP registration seam ready</text>
+
+  <text x="500" y="884" font-size="12" fill="#6B6152">In-memory stores for demo (quotes, invoices, ledger) · swap for ApsaraDB RDS in production</text>
+
+  <!-- ========== COLUMN 3 : EXTERNAL ========== -->
+  <rect x="1170" y="368" width="390" height="170" rx="16" fill="#EFE6FF" stroke="#6E38F7" stroke-width="2.5"/>
+  <text x="1190" y="396" font-size="17" font-weight="700" fill="#6E38F7">QWEN CLOUD (Alibaba)</text>
+  <text x="1190" y="420" font-size="13" fill="#211C15">qwen-plus · OpenAI-compatible API</text>
+  <text x="1190" y="441" font-size="12" fill="#211C15">dashscope-intl.aliyuncs.com/compatible-mode/v1</text>
+  <text x="1190" y="464" font-size="12.5" fill="#211C15">• Function calling (drives the 5-tool loop)</text>
+  <text x="1190" y="485" font-size="12.5" fill="#211C15">• Off-catalog HSN + GST classification</text>
+  <text x="1190" y="506" font-size="12.5" fill="#211C15">• Multilingual NLU: EN / Hindi / Hinglish</text>
+  <text x="1190" y="527" font-size="12.5" fill="#211C15">• Quote revision with exact instructions</text>
+
+  <rect x="1170" y="698" width="390" height="90" rx="16" fill="none" stroke="#8a8070" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="1190" y="726" font-size="14" font-weight="700" fill="#8a8070">NIC IRP e-invoice portal (planned)</text>
+  <text x="1190" y="748" font-size="12" fill="#8a8070">Live IRN + RS256-signed QR. GSTIN-gated creds;</text>
+  <text x="1190" y="766" font-size="12" fill="#8a8070">drop-in seam ready in einvoice.register_invoice()</text>
+
+  <rect x="1170" y="818" width="390" height="90" rx="16" fill="none" stroke="#8a8070" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="1190" y="846" font-size="14" font-weight="700" fill="#8a8070">WhatsApp Cloud API (planned)</text>
+  <text x="1190" y="868" font-size="12" fill="#8a8070">Production channel replacing the demo chat;</text>
+  <text x="1190" y="886" font-size="12" fill="#8a8070">delivery is simulated in-app today</text>
+
+  <!-- ========== ARROWS ========== -->
+  <path d="M430 202 L500 202" stroke="#211C15" stroke-width="2.5" fill="none" marker-end="url(#a)"/>
+  <path d="M500 218 L430 218" stroke="#211C15" stroke-width="2.5" fill="none" marker-end="url(#a)"/>
+  <text x="436" y="192" font-size="11.5" font-weight="700" fill="#211C15">HTTPS 443</text>
+
+  <path d="M800 234 L800 252" stroke="#211C15" stroke-width="2.5" fill="none" marker-end="url(#a)"/>
+  <path d="M800 348 L800 368" stroke="#211C15" stroke-width="2.5" fill="none" marker-end="url(#a)"/>
+
+  <path d="M1100 430 L1170 430" stroke="#DC6B18" stroke-width="4" fill="none" marker-end="url(#as)"/>
+  <path d="M1170 460 L1100 460" stroke="#DC6B18" stroke-width="4" fill="none" marker-end="url(#as)"/>
+  <text x="1106" y="420" font-size="11.5" font-weight="700" fill="#B4530C">model + tool calls</text>
+
+  <path d="M650 538 L650 558" stroke="#211C15" stroke-width="2.5" fill="none" marker-end="url(#a)"/>
+  <text x="600" y="553" font-size="11" fill="#6B6152">quote math</text>
+  <path d="M955 538 L955 558" stroke="#211C15" stroke-width="2.5" fill="none" marker-end="url(#a)"/>
+  <text x="965" y="553" font-size="11" fill="#6B6152">search + snap</text>
+
+  <path d="M650 678 L650 698" stroke="#12805C" stroke-width="2.5" fill="none" marker-end="url(#a)"/>
+  <text x="560" y="693" font-size="11" font-weight="700" fill="#12805C">owner approves</text>
+
+  <path d="M1100 743 L1170 743" stroke="#8a8070" stroke-width="2.5" stroke-dasharray="6 5" fill="none" marker-end="url(#ag)"/>
+  <path d="M1100 300 C1150 300 1150 340 1170 843 M1100 300" stroke="none" fill="none"/>
+  <path d="M1100 300 L1140 300 L1140 863 L1170 863" stroke="#8a8070" stroke-width="2" stroke-dasharray="6 5" fill="none" marker-end="url(#ag)"/>
+  <text x="1108" y="292" font-size="11" fill="#8a8070">/send</text>
+
+  <!-- ========== FLOW STRIP ========== -->
+  <rect x="40" y="930" width="1520" height="100" rx="12" fill="#211C15"/>
+  <text x="60" y="960" font-size="13.5" font-weight="700" fill="#FDF7EA">END-TO-END FLOW</text>
+  <text x="60" y="984" font-size="12.5" fill="#FDF7EA">1 Customer types or speaks an inquiry → 2 Qwen agent runs the tool loop (catalog search, HSN classification, line items) → 3 if info is missing the agent asks back in the customer's language → 4 follow-up answers resolve via conversation memory →</text>
+  <text x="60" y="1006" font-size="12.5" fill="#FDF7EA">5 deterministic engine computes CGST/SGST/IGST → 6 owner reviews the trace, revises in natural language, approves → 7 e-invoice: INV-01 + IRN + signed QR + UPI pay QR delivered to chat → 8 mark paid → live ledger updates collections and GST</text>
+</svg>
+</body></html>
